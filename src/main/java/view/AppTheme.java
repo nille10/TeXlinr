@@ -30,26 +30,35 @@ public class AppTheme {
 
   // ── Accent-Palette ───────────────────────────────────────────────────────
 
+  /** Standard-Akzentfarbe (Hauptfarbe #204AEA, kräftiges Blau). */
+  private static final Color DEFAULT_ACCENT       = new Color(0x20, 0x4A, 0xEA);
+
+  /** Standard-Variante für gedrückte/fokussierte Zustände (dunkleres Blau). */
+  private static final Color DEFAULT_ACCENT_DARK  = new Color(0x16, 0x34, 0xB8);
+
+  /** Standard-Variante für Fokus-Glow und ausgewählte Tabs (sehr helles Blau). */
+  private static final Color DEFAULT_ACCENT_LIGHT = new Color(0xDC, 0xE4, 0xFD);
+
   /** Die aktuelle Akzentfarbe, z. B. für Buttons, Auswahl-Hintergründe und Fokus-Rahmen. */
-  public static Color ACCENT       = new Color(250, 109, 123, 255);
+  public static Color ACCENT       = DEFAULT_ACCENT;
 
   /** Dunklere Variante der Akzentfarbe, u. a. für gedrückte/fokussierte Zustände. */
-  public static Color ACCENT_DARK  = new Color(0xFC, 0x27, 0x39);
+  public static Color ACCENT_DARK  = DEFAULT_ACCENT_DARK;
 
   /** Hellere Variante der Akzentfarbe, u. a. für Fokus-Glow und ausgewählte Tabs. */
-  public static Color ACCENT_LIGHT = new Color(0xFD, 0xE3, 0xE5);
+  public static Color ACCENT_LIGHT = DEFAULT_ACCENT_LIGHT;
 
-  /** Hover-Hintergrund einer Baumzeile im Light-Theme: sehr helles, gedämpftes Rosé. */
-  private static final Color HOVER_BG_LIGHT = new Color(0xFA, 0xEA, 0xEB);
+  /** Hover-Hintergrund einer Baumzeile im Light-Theme: sehr helles, gedämpftes Blau. */
+  private static final Color HOVER_BG_LIGHT = new Color(0xE8, 0xED, 0xFC);
 
-  /** Hover-Textfarbe einer Baumzeile im Light-Theme: warmes Dunkelgrau. */
-  private static final Color HOVER_FG_LIGHT = new Color(0x3A, 0x1A, 0x1C);
+  /** Hover-Textfarbe einer Baumzeile im Light-Theme: dunkles Blaugrau. */
+  private static final Color HOVER_FG_LIGHT = new Color(0x12, 0x1D, 0x45);
 
-  /** Hover-Hintergrund einer Baumzeile im Dark-Theme: dunkles, gedämpftes Rot. */
-  private static final Color HOVER_BG_DARK  = new Color(0x4A, 0x22, 0x25);
+  /** Hover-Hintergrund einer Baumzeile im Dark-Theme: dunkles, gedämpftes Blau. */
+  private static final Color HOVER_BG_DARK  = new Color(0x1E, 0x2A, 0x5A);
 
-  /** Hover-Textfarbe einer Baumzeile im Dark-Theme: helles Rosa. */
-  private static final Color HOVER_FG_DARK  = new Color(0xF5, 0xD5, 0xD7);
+  /** Hover-Textfarbe einer Baumzeile im Dark-Theme: helles Blau. */
+  private static final Color HOVER_FG_DARK  = new Color(0xD5, 0xDD, 0xF7);
 
   /** Gibt an, ob aktuell das Dark-Theme aktiv ist. */
   private static boolean dark = false;
@@ -144,6 +153,8 @@ public class AppTheme {
    * aktuelle Akzentfarb-Palette.
    */
   private static void applyAccent() {
+    // FlatLaf-Basisfarbe: färbt alle nicht einzeln überschriebenen Akzente mit
+    UIManager.put("Component.accentColor",               ACCENT);
     UIManager.put("Component.focusColor",                ACCENT_LIGHT);
     UIManager.put("Component.focusedBorderColor",        ACCENT);
     UIManager.put("Component.focusWidth",                1);
@@ -366,15 +377,9 @@ public class AppTheme {
    * @param frame das neu zu zeichnende Fenster
    */
   public static void resetToDefaults(JFrame frame) {
-
-    /** Die aktuelle Akzentfarbe, z. B. für Buttons, Auswahl-Hintergründe und Fokus-Rahmen. */
-    ACCENT       = new Color(250, 109, 123, 255);
-
-    /** Dunklere Variante der Akzentfarbe, u. a. für gedrückte/fokussierte Zustände. */
-    ACCENT_DARK  = new Color(0xFC, 0x27, 0x39);
-
-    /** Hellere Variante der Akzentfarbe, u. a. für Fokus-Glow und ausgewählte Tabs. */
-    ACCENT_LIGHT = new Color(0xFD, 0xE3, 0xE5);
+    ACCENT       = DEFAULT_ACCENT;
+    ACCENT_DARK  = DEFAULT_ACCENT_DARK;
+    ACCENT_LIGHT = DEFAULT_ACCENT_LIGHT;
     applyAll();
     SwingUtilities.updateComponentTreeUI(frame);
   }

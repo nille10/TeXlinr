@@ -58,7 +58,7 @@ public class MainWindow extends JFrame {
     private final JLabel statusBar;
 
     /** Der Basis-Fenstertitel ohne Dirty-Markierung. */
-    private static final String BASE_TITLE = "JOutlinr";
+    private static final String BASE_TITLE = "TeXlinr";
 
     /** Der globale Undo-Manager. */
     private final UndoManager undoManager;
@@ -77,7 +77,7 @@ public class MainWindow extends JFrame {
     public MainWindow() {
         super(BASE_TITLE);
         setDefaultCloseOperation(JFrame.DO_NOTHING_ON_CLOSE);
-        setSize(950, 640);
+        setSize(1200, 720);
         setIconImage(loadLogo());
         setMinimumSize(new Dimension(600, 400));
         setLocationRelativeTo(null);
@@ -107,21 +107,30 @@ public class MainWindow extends JFrame {
         // Toolbar
         Toolbar toolbar = new Toolbar(outlineActions);
 
-        // SplitPane: Outline oben, Text unten
-        JSplitPane splitPane = new JSplitPane(
-                JSplitPane.VERTICAL_SPLIT,
-                outlinePanel,
-                textWindow
-        );
-        splitPane.setResizeWeight(0.6);
-        splitPane.setDividerSize(5);
-        splitPane.setDividerLocation(380);
-        splitPane.setBorder(null);
+        // Arbeitsbereiche
+        TreeView treeView = new TreeView(outlinePanel, textWindow);
+        ImageManagementPanel imageManagementPanel = new ImageManagementPanel();
+        FormalitiesPanel formalitiesPanel = new FormalitiesPanel();
 
-        // Zusammenbauen
+        WorkspacePanel workspacePanel = new WorkspacePanel(
+                treeView,
+                imageManagementPanel,
+                formalitiesPanel
+        );
+
+        // Linke Navigation
+        NavigationSidebar navigationSidebar =
+                new NavigationSidebar(workspacePanel::showView);
+
+        // Dauerhaft sichtbare PDF-Vorschau
+        PDFPreviewPanel pdfPreviewPanel = new PDFPreviewPanel();
+
+        // Hauptlayout
         getContentPane().setLayout(new BorderLayout());
         getContentPane().add(toolbar, BorderLayout.NORTH);
-        getContentPane().add(splitPane, BorderLayout.CENTER);
+        getContentPane().add(navigationSidebar, BorderLayout.WEST);
+        getContentPane().add(workspacePanel, BorderLayout.CENTER);
+        getContentPane().add(pdfPreviewPanel, BorderLayout.EAST);
 
         // Hinweis MVC-Umbau: Die Zeile
         //   outlinePanel.getColumnPanel().setOnDataChanged(outlineController::markDirty);
@@ -277,7 +286,7 @@ public class MainWindow extends JFrame {
 
         try {
             return ImageIO.read(
-                    getClass().getResource("/images/joutliner_logo.png")
+                    getClass().getResource("/images/texlinr_logo.png")
             );
 
         } catch (IOException | IllegalArgumentException e) {

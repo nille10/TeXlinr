@@ -1,6 +1,6 @@
-# JOutlinr
+# TeXlinr
 
-![JOutlinr Logo](src/main/resources/images/joutliner_logo.png)
+![TeXlinr Logo](src/main/resources/images/texlinr_logo.png)
 
 **JOutlinr** ist eine schlanke, desktopbasierte Outliner-Anwendung, mit der sich Ideen, Notizen und Gliederungen hierarchisch strukturieren lassen. Sie eignet sich besonders zur Planung und Organisation von Texten und Dokumenten, etwa für wissenschaftliche Arbeiten in LaTeX.
 

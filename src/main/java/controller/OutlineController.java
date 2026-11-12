@@ -664,7 +664,7 @@ public class OutlineController {
      * Fügt dem Titel ein * hinzu, wenn {@link #dirty} true ist, ansonsten wird der * entfernt.
      */
     private void updateTitle() {
-        mainWindow.setTitle((dirty ? "* " : "") + "JOutlinr");
+        mainWindow.setTitle((dirty ? "* " : "") + "TeXlinr");
     }
 
     /**
