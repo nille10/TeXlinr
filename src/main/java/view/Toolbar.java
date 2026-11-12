@@ -13,9 +13,10 @@ import javax.imageio.ImageIO;
  *
  * <p>Baut für jede Gliederungs-Aktion aus {@link OutlineActions} einen Button
  * mit Icon und Beschriftung auf (neuer Wurzel-/Normal-/Untereintrag, Löschen,
- * Ein-/Ausrücken, Auf-/Zuklappen, neue Spalte). Hält selbst keinen Zustand und
- * keine Geschäftslogik — jede Schaltfläche delegiert direkt an die übergebene
- * {@link Action}.</p>
+ * Ein-/Ausrücken, Auf-/Zuklappen, neue Spalte). Ganz rechts sitzt der
+ * Build-Button, der das LaTeX-Dokument kompiliert und die PDF-Vorschau
+ * aktualisiert. Hält selbst keinen Zustand und keine Geschäftslogik — jede
+ * Schaltfläche delegiert direkt an die übergebene {@link Action}.</p>
  */
 public class Toolbar extends JToolBar {
 
@@ -26,8 +27,9 @@ public class Toolbar extends JToolBar {
      * Baut die Werkzeugleiste mit allen Buttons auf.
      *
      * @param outlineActions die vorgefertigten Gliederungs-Actions, aus denen die Buttons erzeugt werden
+     * @param buildAction    die Action, die LaTeX kompiliert und die Vorschau aktualisiert
      */
-    public Toolbar(OutlineActions outlineActions) {
+    public Toolbar(OutlineActions outlineActions, Action buildAction) {
         setFloatable(false);
         //setBackground(new Color(245, 245, 248));
         setBorder(BorderFactory.createMatteBorder(0, 0, 1, 0, new Color(200, 200, 210)));
@@ -41,6 +43,10 @@ public class Toolbar extends JToolBar {
         add(toolButton(outlineActions.expandAllAction,     "aufklappen", "Aufklappen"));
         add(toolButton(outlineActions.collapseAllAction,   "zuklappen", "Zuklappen"));
         add(toolButton(outlineActions.addColumnAction,   "column", "Neue Spalte"));
+
+        // Build-Button ganz rechts, in der Nähe der PDF-Vorschau
+        add(Box.createHorizontalGlue());
+        add(toolButton(buildAction, "build", "Build"));
     }
 
     /** KI generiert

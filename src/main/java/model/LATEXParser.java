@@ -10,12 +10,22 @@ import javax.swing.tree.TreeModel;
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
+import java.nio.file.Path;
+import java.util.Objects;
 
 /**
- * Der {@code XMLParser} ist für das Exportieren von Outlines im Latex-Format zuständig.
+ * Der {@code LATEXParser} ist für das Exportieren von Outlines im Latex-Format zuständig.
  *
  * <p>
  *   Der Grundaufbau des Dokuments ist \section \subsection \subsubsection für die drei möglichen Ebenen im Outliner.
+ * </p>
+ *
+ * <p>
+ *   Die Klasse bietet zwei Einstiegspunkte: {@link #exportAsLatex()} fragt Modus,
+ *   Titelseiten-Angaben und Speicherort über Dialoge ab (Menü-Export), während
+ *   {@link #exportTo(Path, LatexExportMode, LatexMetadata)} ohne jeden Dialog direkt
+ *   in eine Datei schreibt (z. B. für den Build der PDF-Vorschau). Beide erzeugen
+ *   exakt dasselbe Dokument.
  * </p>
  */
 public class LATEXParser {
@@ -42,6 +52,7 @@ public class LATEXParser {
      * <p>
      *   Öffnet einen Dialog um zu ermitteln in welchem Modus das LATEX-Dokument generiert werden soll (siehe {@link LatexExportDialog}.
      *   Abhängig vom gewählten Modus wird das generierte LATEX-Dokument an dem ausgewählten Ort (siehe {@link #exportAsLatexDialog()}) gespeichert.
+     *   Die eigentliche Erzeugung übernimmt {@link #exportTo(Path, LatexExportMode, LatexMetadata)}.
      * </p>
      *
      * @throws IOException wenn beim Schreiben auf der Festplatte ein fehler auftrit
@@ -68,10 +79,45 @@ public class LATEXParser {
             return;
         }
 
-        String body = toLatexString((OutlineNode) treeModel.getRoot());
-        String fullDocument = buildFullLatexDocument(metadata, body);
+        exportTo(saveLocation.toPath(), mode, metadata);
+    }
 
-        Files.writeString(saveLocation.toPath(), fullDocument);
+    /**
+     * Schreibt den Inhalt des Outliners ohne jeden Dialog als LATEX-Dokument in die angegebene Datei.
+     *
+     * <p>
+     *   Fehlende Verzeichnisse werden angelegt, eine vorhandene Datei wird überschrieben.
+     *   Logos der Titelseite werden nur eingebunden, wenn sie relativ zum Zielverzeichnis
+     *   existieren (siehe {@link #includeGraphicIfPresent(Path, String, String)}), damit
+     *   das Dokument auch ohne diese Dateien kompiliert.
+     * </p>
+     *
+     * @param texFile  die Zieldatei
+     * @param mode     {@link LatexExportMode#STANDARD} oder {@link LatexExportMode#EXPERT}
+     * @param metadata die Titelseiten-Angaben; wird nur im Modus {@code EXPERT} benötigt und sonst ignoriert
+     * @throws IOException              wenn beim Schreiben auf der Festplatte ein Fehler auftritt
+     * @throws IllegalArgumentException wenn der Modus ungültig ist oder im Modus {@code EXPERT} keine Metadaten übergeben wurden
+     */
+    public void exportTo(Path texFile, LatexExportMode mode, LatexMetadata metadata) throws IOException {
+        Objects.requireNonNull(texFile, "texFile");
+        if (mode == null || mode == LatexExportMode.CANCELLED) {
+            throw new IllegalArgumentException("Ungültiger Export-Modus: " + mode);
+        }
+        if (mode == LatexExportMode.EXPERT && metadata == null) {
+            throw new IllegalArgumentException("Der benutzerdefinierte Export benötigt Titelseiten-Angaben.");
+        }
+
+        Path target = texFile.toAbsolutePath();
+        Path directory = target.getParent();
+        if (directory != null) {
+            Files.createDirectories(directory);
+        }
+
+        String body = toLatexString((OutlineNode) treeModel.getRoot());
+        String fullDocument = buildFullLatexDocument(
+                mode == LatexExportMode.EXPERT ? metadata : null, body, directory);
+
+        Files.writeString(target, fullDocument);
     }
 
     /**
@@ -120,37 +166,44 @@ public class LATEXParser {
     /**
      * Öffnet einen Dialog, bei dem der Pfad zum Speichern des LATEX-Dokuments ermittelt wird.
      *
-     * @return Ort an dem das Dokument gespeichert werden soll
+     * <p>Die Endung {@code .tex} wird nur angehängt, wenn der Benutzer sie nicht selbst angegeben hat.</p>
+     *
+     * @return Ort an dem das Dokument gespeichert werden soll, oder {@code null} bei Abbruch
      */
     private File exportAsLatexDialog() {
         CFileChooser fileChooser = new CFileChooser("Export als Latex",
-                new FileNameExtensionFilter("Latex_Dateien (*.tex", "tex")
+                new FileNameExtensionFilter("Latex_Dateien (*.tex)", "tex")
         );
 
         int result = fileChooser.getSaveResult(mainWindow);
         if (result == JFileChooser.APPROVE_OPTION) {
-            return new File(fileChooser.getFile().getAbsolutePath() + ".tex");
-
+            File chosen = fileChooser.getFile();
+            if (chosen == null) {
+                return null;
+            }
+            String path = chosen.getAbsolutePath();
+            return path.toLowerCase().endsWith(".tex") ? chosen : new File(path + ".tex");
         }
         return null;
     }
 
     /**
      * Erstellt das komplette LATEX-Dokument, abhängig von der Wahl des Benutzers
-     * (siehe {@link #buildStandardLatexDocument(String)} und {@link #buildExpertLatexDocument(LatexMetadata, String)}).
+     * (siehe {@link #buildStandardLatexDocument(String)} und {@link #buildExpertLatexDocument(LatexMetadata, String, Path)}).
      *
-     * @param metadata metadata aus dem {@link #exportAsLatexDialog()}, wenn metadata {@code null} ist, wird das Dokument im Standard Modus erzeugt.
+     * @param metadata Titelseiten-Angaben; wenn metadata {@code null} ist, wird das Dokument im Standard Modus erzeugt.
      * @param body die Knoten im LATEX-Format
+     * @param assetDir das Verzeichnis, relativ zu dem Grafiken (Logos) gesucht werden
      *
      * @return den fertigen String im gewählten Modus
      */
-    private String buildFullLatexDocument(LatexMetadata metadata, String body) {
+    private String buildFullLatexDocument(LatexMetadata metadata, String body, Path assetDir) {
 
         if (metadata == null) {
             return buildStandardLatexDocument(body);
         }
 
-        return buildExpertLatexDocument(metadata, body);
+        return buildExpertLatexDocument(metadata, body, assetDir);
     }
 
     /**
@@ -186,11 +239,16 @@ public class LATEXParser {
     /**
      * Erzeugt ein komplettes LATEX-Dokument mit Informationen wie Fachbereich, Abteilung, Autor, ... (siehe {@link LatexExportDialog}
      *
+     * <p>Das Dokument basiert auf der Klasse {@code article}; alle Zähler und Kopfzeilen-Befehle
+     * sind daher auf {@code section} statt {@code chapter} ausgelegt (ein {@code chapter}-Zähler
+     * existiert in {@code article} nicht und würde die Kompilierung abbrechen).</p>
+     *
      * @param metadata allgemeine Informationen für das LATEX-Dokument
      * @param body die Knoten in LATEX-Form (siehe {@link #getNodes(OutlineNode)}
+     * @param assetDir das Verzeichnis, relativ zu dem Grafiken (Logos) gesucht werden
      * @return einen String mit einem kompletten LATEX-Dokument
      */
-    private String buildExpertLatexDocument(LatexMetadata metadata, String body) {
+    private String buildExpertLatexDocument(LatexMetadata metadata, String body, Path assetDir) {
 
         StringBuilder tex = new StringBuilder();
 
@@ -221,9 +279,10 @@ public class LATEXParser {
         tex.append("}}}\n\n");
 
         tex.append("% ---- Fancy Boxes für Beispiele ----\n");
+        tex.append("\\usepackage{etoolbox}\n");
         tex.append("\\usepackage[framemethod=TikZ]{mdframed}\n\n");
-        tex.append("\\newcounter{exmp}[chapter]\\setcounter{exmp}{0}\n");
-        tex.append("\\renewcommand{\\theexmp}{\\arabic{chapter}.\\arabic{exmp}}\n\n");
+        tex.append("\\newcounter{exmp}[section]\\setcounter{exmp}{0}\n");
+        tex.append("\\renewcommand{\\theexmp}{\\arabic{section}.\\arabic{exmp}}\n\n");
         tex.append("\\newenvironment{exmp}[2][]{%\n");
         tex.append("\t\\refstepcounter{exmp}\n");
         tex.append("\t\\ifstrempty{#1}%\n");
@@ -257,7 +316,6 @@ public class LATEXParser {
         tex.append("\\pagestyle{fancy}\n");
         tex.append("\\fancyhead{}\n");
         tex.append("\\fancyfoot{}\n");
-        tex.append("\\renewcommand{\\chaptermark}[1]{\\markboth{\\chaptername \\ \\thechapter.\\ #1}{}}\n");
         tex.append("\\renewcommand{\\sectionmark}[1]{\\markright{\\thesection.\\ #1}{}}\n");
         tex.append("\\fancyhead[RO,LE]{\\thepage}\n");
         tex.append("\\fancyhead[LO]{\\rightmark}\n");
@@ -334,7 +392,7 @@ public class LATEXParser {
         tex.append("\\begin{document}\n\n");
 
         if (metadata != null) {
-            tex.append(buildTitlePage(metadata));
+            tex.append(buildTitlePage(metadata, assetDir));
             tex.append("\\newpage\n\n");
             tex.append("\\thispagestyle{empty}\n");
             tex.append("\\tableofcontents\n");
@@ -352,9 +410,10 @@ public class LATEXParser {
     /**
      * Erzeugt die Titelseite eines LATEX-Dokuments
      * @param metadata metadaten für das LATEX-Dokument
+     * @param assetDir das Verzeichnis, relativ zu dem das Logo {@code img/hsel-allgemein} gesucht wird
      * @return fertige Titelseite
      */
-    private String buildTitlePage(LatexMetadata metadata) {
+    private String buildTitlePage(LatexMetadata metadata, Path assetDir) {
 
         StringBuilder sb = new StringBuilder();
 
@@ -362,7 +421,7 @@ public class LATEXParser {
         sb.append("\\vspace{-0.5cm}\n");
         sb.append("\\hspace{-2.0cm}\n");
         sb.append("\\begin{tabular}{p{8.0cm} p{8.0cm}}\n");
-        sb.append("  \\includegraphics[width = 6.0cm]{img/hsel-allgemein} &\n");
+        sb.append("  ").append(includeGraphicIfPresent(assetDir, "img/hsel-allgemein", "[width = 6.0cm]")).append(" &\n");
         sb.append("   \\parbox[b]{8.0cm}{\n");
         sb.append("     {\\large \t").append(escapeLatex(metadata.fachbereich())).append(" }\\\\\n");
         sb.append("     {\\large \t").append(escapeLatex(metadata.abteilung())).append(" }     \n");
@@ -407,23 +466,56 @@ public class LATEXParser {
     }
 
     /**
+     * Liefert einen {@code \includegraphics}-Befehl, wenn die Grafik existiert, sonst eine leere Box.
+     *
+     * <p>Damit bricht LATEX nicht mit "File not found" ab, wenn ein Logo nicht neben der
+     * {@code .tex}-Datei liegt (z. B. im temporären Build-Verzeichnis). Geprüft werden
+     * die Endungen pdf, png, jpg und jpeg.</p>
+     *
+     * @param baseDir      das Verzeichnis, in dem relativ gesucht wird (kann {@code null} sein)
+     * @param relativeBase relativer Pfad ohne Endung, z. B. {@code "img/hsel-allgemein"}
+     * @param options      die optionalen Argumente in eckigen Klammern, z. B. {@code "[width = 6.0cm]"}
+     * @return der LATEX-Befehl, oder {@code \mbox{}} wenn keine passende Datei gefunden wurde
+     */
+    private String includeGraphicIfPresent(Path baseDir, String relativeBase, String options) {
+        if (baseDir != null) {
+            for (String extension : new String[]{".pdf", ".png", ".jpg", ".jpeg"}) {
+                if (Files.exists(baseDir.resolve(relativeBase + extension))) {
+                    return "\\includegraphics" + options + "{" + relativeBase + "}";
+                }
+            }
+        }
+        return "\\mbox{}";
+    }
+
+    /**
      * Ersetzt Textelemente die im LATEX-Dokument anders dargestellt werden müssen.
+     *
+     * <p>Jedes Zeichen wird genau einmal ersetzt. Eine Kette von {@code replace}-Aufrufen
+     * würde die geschweiften Klammern des bereits eingefügten {@code \textbackslash{}}
+     * ein zweites Mal escapen.</p>
      *
      * @param input Text der in LATEX Form angepasst werden soll
      * @return angepasster Text
      */
     private String escapeLatex(String input) {
         if (input == null) return "";
-        return input
-                .replace("\\", "\\textbackslash{}")
-                .replace("&", "\\&")
-                .replace("%", "\\%")
-                .replace("$", "\\$")
-                .replace("#", "\\#")
-                .replace("_", "\\_")
-                .replace("{", "\\{")
-                .replace("}", "\\}")
-                .replace("~", "\\textasciitilde{}")
-                .replace("^", "\\textasciicircum{}");
+        StringBuilder sb = new StringBuilder(input.length() + 8);
+        for (char c : input.toCharArray()) {
+            switch (c) {
+                case '\\' -> sb.append("\\textbackslash{}");
+                case '&'  -> sb.append("\\&");
+                case '%'  -> sb.append("\\%");
+                case '$'  -> sb.append("\\$");
+                case '#'  -> sb.append("\\#");
+                case '_'  -> sb.append("\\_");
+                case '{'  -> sb.append("\\{");
+                case '}'  -> sb.append("\\}");
+                case '~'  -> sb.append("\\textasciitilde{}");
+                case '^'  -> sb.append("\\textasciicircum{}");
+                default   -> sb.append(c);
+            }
+        }
+        return sb.toString();
     }
 }

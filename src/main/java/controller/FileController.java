@@ -1,6 +1,8 @@
 package controller;
 
 import model.JSONParser;
+import model.LatexExportMode;
+import model.LatexMetadata;
 import model.OutlineNode;
 import model.XMLParser;
 import model.LATEXParser;
@@ -16,6 +18,7 @@ import javax.swing.tree.DefaultTreeModel;
 import java.awt.event.WindowEvent;
 import java.io.*;
 import java.nio.file.Files;
+import java.nio.file.Path;
 import java.nio.file.attribute.FileTime;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
@@ -24,7 +27,7 @@ import java.time.format.DateTimeFormatter;
 /**
  * Der Controller ist für Speichern und Laden von Dateien zuständig
  *<p>
- * Ist zuständig für den Import und Export des JTrees in den verschiedenen Formen (XML, JSON).
+ * Ist zuständig für den Import und Export des JTrees in den verschiedenen Formen (XML, JSON, LaTeX).
  * Koordiniert die Interaktion mit dem {@link CFileChooser}. Speichert zudem den zuletzt verwendeten Ort zum Speichern und die Uhrzeit der letzten Speicherung.
  *</p>
  * @see JSONParser
@@ -90,6 +93,8 @@ public class FileController {
      * Überprüft, ob noch ein ungespeichertes Dokument geöffnet ist und bietet die möglichkeit dies zu Speichern.
      * Wenn erfolgreich eine Datei ausgewählt wird, werden alle aktuellen OutlineNodes gelöscht und die neuen geladen.
      * Falls der Import nicht erfolgreich war, wird ein Fenster mit der entsprechenden Fehlermeldung angezeigt.
+     * Der Dirty-Status wird nur nach einem erfolgreichen Import zurückgesetzt, ein abgebrochener
+     * Dialog lässt ungespeicherte Änderungen also weiterhin als ungespeichert gelten.
      * </p>
      */
     public void openDocument() {
@@ -99,6 +104,7 @@ public class FileController {
                 try {
                     outlineController.deleteAllColumns();
                     importXML(saveLocation);
+                    outlineController.saved();
                 } catch (Exception e) {
                     JOptionPane.showMessageDialog(mainWindow, "Fehler beim Öffnen der Datei: " + e, "Fehler", JOptionPane.ERROR_MESSAGE);
                 }
@@ -106,11 +112,11 @@ public class FileController {
                 try {
                     outlineController.deleteAllColumns(); // Error Fenster
                     importJson(saveLocation);
+                    outlineController.saved();
                 } catch (Exception e) {
                     JOptionPane.showMessageDialog(mainWindow, "Fehler beim Öffnen der Datei: " + e, "Fehler", JOptionPane.ERROR_MESSAGE);
                 }
             }
-            outlineController.saved();
         }
     }
 
@@ -191,6 +197,23 @@ public class FileController {
     }
 
     /**
+     * Schreibt das Dokument ohne Dialoge als LaTeX in die angegebene Datei.
+     * <p>
+     *     Wird vom Build der PDF-Vorschau verwendet. Modus und Titelseiten-Angaben
+     *     sind bereits bekannt, Fehler werden an den Aufrufer weitergegeben statt in
+     *     einem Dialog angezeigt.
+     * </p>
+     * @param mode     der Export-Modus (Standard oder benutzerdefiniert)
+     * @param metadata die Titelseiten-Angaben, {@code null} im Standard-Modus
+     * @param texFile  die Zieldatei
+     * @throws IOException wenn beim Schreiben ein Fehler auftritt
+     * @see LATEXParser#exportTo(Path, LatexExportMode, LatexMetadata)
+     */
+    public void exportLatexTo(LatexExportMode mode, LatexMetadata metadata, Path texFile) throws IOException {
+        new LATEXParser(outlineController, mainWindow, treeModel).exportTo(texFile, mode, metadata);
+    }
+
+    /**
      * Öffnet einen speicher Dialog, um einen Pfad und das Dateiformat zu wählen.
      * <p>
      * Öffnet einen {@code CFileChooser} mit den optionen XML und JSON.
@@ -254,7 +277,7 @@ public class FileController {
         CFileChooser fileChooser = new CFileChooser("Datei Öffnen",
                 new FileNameExtensionFilter("XML-Dateien (*.xml)", "xml"),
                 new FileNameExtensionFilter("JSON-Dateien (*.json)", "json")
-                );
+        );
 
         int result = fileChooser.getOpenResult(mainWindow);
 
@@ -374,6 +397,8 @@ public class FileController {
      * <p>
      *     Falls beim Schließen des Outliners ein Pfad gespeichert wurde, wird die Datei geöffnet.
      *     Falls die Datei nicht mehr existiert oder keine gespeichert wurde passiert nichts.
+     *     Nach erfolgreichem Import wird der Pfad als {@link #saveLocation} übernommen, damit
+     *     Speichern die Datei direkt überschreibt, statt erneut nach einem Ort zu fragen.
      * </p>
      * @see AppPreferences
      */
@@ -389,7 +414,7 @@ public class FileController {
             } else if (lastPath.endsWith("json")) {
                 try {
                     importJson(new File(lastPath));
-                    new File(lastPath);
+                    saveLocation = new File(lastPath);
                 } catch (Exception ignored) {}
             }
         }

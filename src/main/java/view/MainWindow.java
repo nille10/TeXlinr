@@ -1,5 +1,6 @@
 package view;
 
+import action.actions.BuildAction;
 import action.actions.EditActions;
 import action.actions.FileActions;
 import action.actions.OutlineActions;
@@ -9,8 +10,10 @@ import action.actions.edit.InsertAction;
 import action.manager.UndoManager;
 import action.actions.outline.*;
 import controller.*;
-import controller.SaveStatus;
+import model.LatexExportMode;
+import model.LatexMetadata;
 import model.OutlineNode;
+import service.LatexCompiler;
 
 import javax.swing.*;
 import java.awt.*;
@@ -20,28 +23,38 @@ import javax.imageio.ImageIO;
 import java.awt.event.WindowAdapter;
 import java.awt.event.WindowEvent;
 import java.io.IOException;
+import java.io.UncheckedIOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.util.Comparator;
 
 /**
- * MainWindow – Hauptfenster des Outliners.
+ * MainWindow – Hauptfenster des LaTeX-Outliners.
  *
- * <p>Baut das komplette Fenster zusammen: Menüleiste, Toolbar, das geteilte
- * Haupt-Layout aus {@link OutlinePanel} (Baum) und {@link TextWindow}
- * (Notizbereich), sowie die Status-Leiste. Erzeugt dabei alle Controller
- * ({@link OutlineController}, {@link FileController}, {@link EditController})
- * und verdrahtet deren Actions mit Menü, Toolbar und den Tastaturkürzeln des
- * Baums. Enthält selbst keine Geschäftslogik, sondern delegiert jede Aktion an
- * den zuständigen Controller.</p>
+ * <p>Baut das komplette Fenster zusammen: Menüleiste, Toolbar, linke Navigation,
+ * die umschaltbaren Arbeitsbereiche (Gliederung, Abbildungen, Formalia), die
+ * dauerhaft sichtbare PDF-Vorschau sowie die Status-Leiste. Erzeugt dabei alle
+ * Controller ({@link OutlineController}, {@link FileController},
+ * {@link EditController}) und verdrahtet deren Actions mit Menü, Toolbar und den
+ * Tastaturkürzeln des Baums. Enthält selbst keine Geschäftslogik, sondern
+ * delegiert jede Aktion an den zuständigen Controller.</p>
+ *
+ * <p>Der Build-Button der Toolbar ({@link BuildAction}) exportiert die Gliederung
+ * als {@code main.tex} in ein temporäres Build-Verzeichnis, kompiliert sie mit der
+ * lokal installierten TeX-Distribution ({@link LatexCompiler}) und aktualisiert
+ * die {@link PDFPreviewPanel}. Das Verzeichnis wird beim Schließen gelöscht.</p>
  *
  * Layout:
- *   ┌──────────────────────────────────────┐
- *   │  Menüleiste (JMenuBar)               │
- *   ├──────────────────────────────────────┤
- *   │  Toolbar                             │
- *   ├──────────────────────────────────────┤
- *   │  OutlinePanel (JTree, oben)          │
- *   │──────────────────────────────────────│
- *   │  TextWindow (Notizbereich, unten)    │
- *   └──────────────────────────────────────┘
+ *   ┌──────────────────────────────────────────────────────┐
+ *   │  Menüleiste (JMenuBar)                               │
+ *   ├──────────────────────────────────────────────────────┤
+ *   │  Toolbar                                    [Build]  │
+ *   ├─────┬─────────────────────────────────┬──────────────┤
+ *   │ Nav │  WorkspacePanel                 │ PDF-Vorschau │
+ *   │     │  (Gliederung / Bilder / Formalia)│              │
+ *   ├─────┴─────────────────────────────────┴──────────────┤
+ *   │  Status-Leiste                                       │
+ *   └──────────────────────────────────────────────────────┘
  */
 public class MainWindow extends JFrame {
 
@@ -63,16 +76,26 @@ public class MainWindow extends JFrame {
     /** Der globale Undo-Manager. */
     private final UndoManager undoManager;
 
+    /** Die dauerhaft sichtbare PDF-Vorschau am rechten Rand. */
+    private final PDFPreviewPanel preview;
+
+    /** Temporäres Arbeitsverzeichnis für main.tex, PDF und Hilfsdateien des Builds. */
+    private final Path buildDir;
+
+    /** Der Controller für Speichern, Laden und Exportieren von Dateien. */
+    private final FileController fileController;
+
 
     /**
      * Baut das Hauptfenster komplett auf.
      *
      * <p>Erstellt in dieser Reihenfolge: {@link OutlinePanel} und
      * {@link TextWindow}, den globalen {@link UndoManager}, die drei Controller,
-     * die Tastaturkürzel des Baums, die Actions, Menüleiste und Toolbar, das
-     * {@link JSplitPane}-Layout sowie die Status-Leiste. Registriert außerdem den
-     * Window-Closing-Handler, der vor dem Schließen den Speicherstatus prüft, und
-     * versucht abschließend, die zuletzt bearbeitete Datei zu importieren.</p>
+     * die Tastaturkürzel des Baums, die Actions, die PDF-Vorschau samt
+     * {@link BuildAction}, Menüleiste und Toolbar, die Arbeitsbereiche sowie die
+     * Status-Leiste. Registriert außerdem den Window-Closing-Handler, der vor dem
+     * Schließen den Speicherstatus prüft, und versucht abschließend, die zuletzt
+     * bearbeitete Datei zu importieren.</p>
      */
     public MainWindow() {
         super(BASE_TITLE);
@@ -88,7 +111,7 @@ public class MainWindow extends JFrame {
 
         // Controller
         outlineController = new OutlineController(outlinePanel, textWindow, this);
-        FileController fileController = new FileController(outlineController, this);
+        fileController = new FileController(outlineController, this);
         EditController editController = new EditController(this, undoManager, outlineController);
 
         // KeyBindings für den Tree registrieren
@@ -100,12 +123,25 @@ public class MainWindow extends JFrame {
         FileActions fileActions = new FileActions(fileController);
         OutlineActions outlineActions = new OutlineActions(outlineController, undoManager);
 
+        // Dauerhaft sichtbare PDF-Vorschau
+        preview = new PDFPreviewPanel();
+
+        // Build: LaTeX exportieren -> kompilieren -> Vorschau aktualisieren
+        buildDir = createBuildDir();
+        BuildAction build = new BuildAction(
+                this,
+                this::exportLatex,
+                preview,
+                buildDir,
+                new LatexCompiler());              // oder new LatexCompiler(LatexCompiler.Engine.XELATEX)
+        build.registerShortcuts(getRootPane());
+
         // Menüleiste
         Menubar menubar = new Menubar(fileActions, outlineActions, editActions, this, outlinePanel, outlineController);
         setJMenuBar(menubar);
 
-        // Toolbar
-        Toolbar toolbar = new Toolbar(outlineActions);
+        // Toolbar (Build-Button sitzt rechts außen)
+        Toolbar toolbar = new Toolbar(outlineActions, build);
 
         // Arbeitsbereiche
         TreeView treeView = new TreeView(outlinePanel, textWindow);
@@ -122,15 +158,12 @@ public class MainWindow extends JFrame {
         NavigationSidebar navigationSidebar =
                 new NavigationSidebar(workspacePanel::showView);
 
-        // Dauerhaft sichtbare PDF-Vorschau
-        PDFPreviewPanel pdfPreviewPanel = new PDFPreviewPanel();
-
         // Hauptlayout
         getContentPane().setLayout(new BorderLayout());
         getContentPane().add(toolbar, BorderLayout.NORTH);
         getContentPane().add(navigationSidebar, BorderLayout.WEST);
         getContentPane().add(workspacePanel, BorderLayout.CENTER);
-        getContentPane().add(pdfPreviewPanel, BorderLayout.EAST);
+        getContentPane().add(preview, BorderLayout.EAST);
 
         // Hinweis MVC-Umbau: Die Zeile
         //   outlinePanel.getColumnPanel().setOnDataChanged(outlineController::markDirty);
@@ -164,6 +197,8 @@ public class MainWindow extends JFrame {
             public void windowClosing(WindowEvent e) {
                 if(fileController.checkSavedStatus() != SaveStatus.SAVE_FAILED) {
                     fileController.saveLastPath();
+                    preview.dispose();
+                    deleteRecursively(buildDir);
                     dispose();
                 }
             }
@@ -171,6 +206,50 @@ public class MainWindow extends JFrame {
 
         fileController.tryImportLastEditedFile();
         outlineController.saved();
+    }
+
+    /**
+     * Schreibt den LaTeX-Quelltext der aktuellen Gliederung in die angegebene Datei.
+     *
+     * <p>Wird von der {@link BuildAction} bei jedem Build im Event-Dispatch-Thread
+     * aufgerufen, die Gliederung ändert sich währenddessen also nicht.</p>
+     *
+     * @param mode     der gewählte Export-Modus (Standard oder benutzerdefiniert)
+     * @param metadata die Titelseiten-Angaben; {@code null} im Standard-Modus
+     * @param texFile  die Zieldatei ({@code main.tex} im Build-Verzeichnis)
+     * @throws IOException wenn die Datei nicht geschrieben werden konnte
+     */
+    private void exportLatex(LatexExportMode mode, LatexMetadata metadata, Path texFile) throws IOException {
+        fileController.exportLatexTo(mode, metadata, texFile);
+    }
+
+    /**
+     * Legt das temporäre Build-Verzeichnis an.
+     *
+     * @return der Pfad des neuen Verzeichnisses
+     * @throws UncheckedIOException wenn das Verzeichnis nicht angelegt werden konnte
+     */
+    private static Path createBuildDir() {
+        try {
+            return Files.createTempDirectory("texlinr-build");
+        } catch (IOException e) {
+            throw new UncheckedIOException("Build-Verzeichnis konnte nicht angelegt werden", e);
+        }
+    }
+
+    /**
+     * Löscht ein Verzeichnis samt Inhalt; Fehler werden bewusst ignoriert, da es
+     * sich nur um temporäre Dateien handelt.
+     *
+     * @param dir das zu löschende Verzeichnis, darf {@code null} sein
+     */
+    private static void deleteRecursively(Path dir) {
+        if (dir == null) return;
+        try (var walk = Files.walk(dir)) {
+            walk.sorted(Comparator.reverseOrder()).forEach(p -> p.toFile().delete());
+        } catch (IOException ignored) {
+            // temporäre Dateien, nicht kritisch
+        }
     }
 
     /**
@@ -316,6 +395,13 @@ public class MainWindow extends JFrame {
      * @return der {@link UndoManager} dieses Fensters
      */
     public UndoManager getUndoManager() { return undoManager; }
+
+    /**
+     * Liefert die PDF-Vorschau.
+     *
+     * @return das {@link PDFPreviewPanel} dieses Fensters
+     */
+    public PDFPreviewPanel getPreview() { return preview; }
 
     /**
      * Liefert das Hauptfenster.
