@@ -1,43 +1,33 @@
-JOutlinr – Third-Party Software Notices
-=======================================
+TeXlinr – Third-Party Software Notices
+======================================
 
-JOutlinr includes or uses third-party software listed below.
+TeXlinr includes or uses third-party software listed below.
 
 The bundled components are provided under their respective licenses.
 These notices apply to the relevant third-party components and do not
-automatically determine the license of the JOutlinr application itself.
+automatically determine the license of the TeXlinr application itself.
+TeXlinr is licensed under the MIT License, see the file LICENSE.
 
 
-1. Eclipse Temurin JRE 23
--------------------------
+1. JOutlinr (basis of this project)
+-----------------------------------
 
-JOutlinr bundles Eclipse Temurin JRE 23, an OpenJDK-based Java runtime
-provided by the Eclipse Adoptium project.
+TeXlinr is derived from JOutlinr, an outliner application by nille10
+and 1ngbert.
 
-The Java runtime is included so that users can run JOutlinr without
-installing Java separately.
+License: MIT License
 
-Project website:
-https://adoptium.net/
+Source code:
+https://github.com/nille10/JOutlinr
 
-Temurin 23 binaries:
-https://github.com/adoptium/temurin23-binaries/releases
-
-Eclipse Adoptium project and licensing information:
-https://projects.eclipse.org/projects/adoptium.temurin
-
-The Temurin distribution contains components covered by different
-open-source licenses. The applicable license and copyright notices
-are those supplied with the specific Temurin distribution.
-
-Original license files, copyright notices and other legal notices
-included with the bundled runtime must be retained.
+The copyright notice of JOutlinr is retained in the file LICENSE, as
+required by the MIT License.
 
 
 2. FlatLaf 3.7.1
 ----------------
 
-JOutlinr uses FlatLaf, a look-and-feel library for Java Swing
+TeXlinr uses FlatLaf, a look-and-feel library for Java Swing
 applications, developed by FormDev Software GmbH.
 
 Version: 3.7.1
@@ -57,13 +47,58 @@ Copyright notices and applicable license terms for FlatLaf are
 available from the project and its distribution.
 
 
-3. Launch4j
------------
+3. Apache PDFBox 3.0.0
+----------------------
 
-JOutlinr uses Launch4j to create a Windows executable wrapper for
-the Java application.
+TeXlinr uses Apache PDFBox to load and render the PDF preview.
+PDFBox and the libraries it depends on (FontBox, PDFBox IO and Apache
+Commons Logging) are bundled into the application JAR.
 
-Version: 3.50
+Version: 3.0.0
+
+License: Apache License, Version 2.0
+
+Project website:
+https://pdfbox.apache.org/
+
+License text:
+https://www.apache.org/licenses/LICENSE-2.0.txt
+
+Copyright notices and NOTICE files of these components are supplied
+with their distributions and must be retained when redistributing them.
+
+
+4. Eclipse Temurin JRE 23
+-------------------------
+
+Some TeXlinr distributions for Windows bundle Eclipse Temurin JRE 23,
+an OpenJDK-based Java runtime provided by the Eclipse Adoptium project,
+so that users can run the application without installing Java
+separately. Distributions that consist only of the JAR file do not
+contain it.
+
+Project website:
+https://adoptium.net/
+
+Temurin 23 binaries:
+https://github.com/adoptium/temurin23-binaries/releases
+
+Eclipse Adoptium project and licensing information:
+https://projects.eclipse.org/projects/adoptium.temurin
+
+The Temurin distribution contains components covered by different
+open-source licenses. The applicable license and copyright notices
+are those supplied with the specific Temurin distribution.
+
+Original license files, copyright notices and other legal notices
+included with the bundled runtime must be retained.
+
+
+5. Launch4j 3.50
+----------------
+
+Some TeXlinr distributions for Windows use Launch4j to create an
+executable wrapper for the Java application.
 
 Project website:
 http://launch4j.sourceforge.net/
@@ -110,7 +145,8 @@ LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN
 ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 POSSIBILITY OF SUCH DAMAGE.
 
-4. Apache Maven Shade Plugin 3.6.0
+
+6. Apache Maven Shade Plugin 3.6.0
 ----------------------------------
 
 The Apache Maven Shade Plugin is used during the build process to
@@ -127,11 +163,22 @@ License text:
 https://www.apache.org/licenses/LICENSE-2.0.txt
 
 The plugin is a build-time tool and is not intentionally included as
-a runtime component of JOutlinr. This notice is provided for
+a runtime component of TeXlinr. This notice is provided for
 transparency about the build configuration.
 
-Users and redistributors must comply with the applicable license
-terms when redistributing those components.
 
-For questions about JOutlinr, please contact the project maintainer
-through the project's GitHub repository.
+7. TeX distribution (not bundled)
+---------------------------------
+
+TeXlinr does not contain a TeX distribution. To build the PDF preview
+it calls the programs latexmk, pdflatex and bibtex of a TeX
+distribution that the user has installed separately (for example
+MiKTeX, TeX Live or MacTeX). These programs are subject to the
+licenses of the respective distribution.
+
+
+Users and redistributors must comply with the applicable license
+terms when redistributing the components listed above.
+
+For questions about TeXlinr, please contact the project maintainer
+through the project's repository.

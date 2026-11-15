@@ -7,6 +7,8 @@
   <groupId>org.example</groupId>
   <artifactId>TeXlinr</artifactId>
   <version>1.0.0</version>
+  <name>TeXlinr</name>
+  <description>Outliner für wissenschaftliche Arbeiten mit LaTeX-Export und PDF-Vorschau (abgeleitet von JOutlinr)</description>
 
   <properties>
     <maven.compiler.release>21</maven.compiler.release>
@@ -30,6 +32,9 @@
   </dependencies>
 
   <build>
+    <!-- Dateiname der fertigen JAR: TeXlinr-1.0.0.jar -->
+    <finalName>${project.name}-${project.version}</finalName>
+
     <plugins>
       <plugin>
         <groupId>org.apache.maven.plugins</groupId>

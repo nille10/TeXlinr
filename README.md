@@ -2,106 +2,92 @@
 
 ![TeXlinr Logo](src/main/resources/images/texlinr_logo.png)
 
-**JOutlinr** ist eine schlanke, desktopbasierte Outliner-Anwendung, mit der sich Ideen, Notizen und Gliederungen hierarchisch strukturieren lassen. Sie eignet sich besonders zur Planung und Organisation von Texten und Dokumenten, etwa für wissenschaftliche Arbeiten in LaTeX.
+**TeXlinr** ist ein Outliner für wissenschaftliche Arbeiten. Du gliederst deinen Text als Baum, schreibst die Inhalte als LaTeX, verwaltest Abbildungen und Quellen in eigenen Bereichen und siehst das fertige PDF mit einem Klick direkt neben der Gliederung.
 
-Das Projekt befindet sich aktuell in der **Beta-Phase** und wird aktiv weiterentwickelt.
+TeXlinr ist eine Weiterentwicklung von [JOutlinr](https://github.com/nille10/JOutlinr) (siehe [Herkunft und Lizenz](#herkunft-und-lizenz)) und befindet sich in der **Beta-Phase**.
 
-**Repository:** [github.com/nille10/JOutlinr](https://github.com/nille10/JOutlinr)
-
-![JOutlinr – Programmübersicht](src/main/resources/images/screenshot_overview.png)
+![TeXlinr – Programmübersicht](src/main/resources/images/screenshot_overview.png)
 
 ## Funktionen
 
-- **Hierarchische Gliederungen** in einer Baumstruktur mit bis zu drei Ebenen.
-- **Flexible Bearbeitung:** Einträge erstellen, umbenennen, löschen und innerhalb der Gliederung verschieben.
-- **Drag-and-drop:** Einträge und ganze Teilbäume per Maus an eine andere Position verschieben.
-- **Mehrfachauswahl:** mehrere Einträge per Strg-Klick auswählen und gemeinsam bearbeiten.
-- **Ein- und ausklappbare Einträge**, damit auch umfangreiche Gliederungen übersichtlich bleiben.
-- **Eigene Spalten** mit Kontrollkästchen oder Textfeldern für zusätzliche Informationen pro Eintrag.
-- **Speichern und Laden** von Gliederungen im XML- und JSON-Format.
-- **Automatische Wiederherstellung** des zuletzt verwendeten Dokuments beim nächsten Start.
+### Gliederung
+- **Hierarchische Gliederung** mit bis zu drei Ebenen, die beim Export zu `\section`, `\subsection` und `\subsubsection` werden.
+- **Bearbeiten per Maus und Tastatur:** Einträge erstellen, umbenennen, löschen, ein- und ausrücken, per Drag-and-drop verschieben, mit Strg-Klick mehrere auswählen.
+- **Eigene Spalten** mit Kontrollkästchen oder Textfeldern (z. B. „Erledigt", „Status").
 - **Rückgängig/Wiederholen** für Änderungen an der Struktur.
-- **LaTeX-Export** mit Standardmodus für den schnellen Export und Expertenmodus für zusätzliche Einstellungen (z. B. Titelseite, Dokumentmetadaten).
-- **Anpassbare Oberfläche:** helles oder dunkles Design sowie verschiedene Akzentfarben.
+- **Suche mit Shift+Shift:** durchsucht den Inhalt aller Notizen. Suche mit Enter starten, mit den Pfeilen durch die Treffer springen, mit Esc schließen.
+
+### Text und LaTeX
+- **Notizen sind LaTeX:** Der Inhalt eines Eintrags landet unverändert im Dokument.
+- **Kürzel für Abbildungen und Quellen:** `\fig:label` fügt die fertige `figure`-Umgebung ein, `\cite:schluessel` (auch mit mehreren, durch Komma getrennten Schlüsseln) wird zum Literaturverweis. Eine Vervollständigung schlägt beim Tippen passende Labels und Schlüssel vor.
+- **PDF-Vorschau:** Mit F5 (oder Strg+B) wird die Gliederung als LaTeX gebaut, mit der lokal installierten TeX-Distribution kompiliert und rechts angezeigt. Zoom per Strg+Mausrad, Verschieben per Ziehen. Die Breite der Vorschau lässt sich mit dem Trenner anpassen.
+- **LaTeX-Export** als `.tex` mit Standardmodus für den schnellen Export und Expertenmodus (Titelseite, Metadaten, Seitenformat).
+
+### Bereiche
+- **Bilder:** Bilderordner `img/` mit Vorschau, Drag-and-drop, Platzierung, Breite, Beschriftung und Label pro Bild.
+- **Formalitäten:** Vorlage, Titelseite, Fachbereich, Abteilung, Titel, Art der Arbeit, Ort, Autoren, Betreuer, Logo, Seitenbreite, Seitenumbrüche und Seitenzahlen. Die Angaben werden mit dem Projekt gespeichert.
+- **Quellen:** Literaturverwaltung für Bücher, Buchkapitel, Zeitschriftenartikel, Konferenzbeiträge, Internetseiten, Software, Abschlussarbeiten, Berichte und Sonstiges. Daraus entsteht die `references.bib` für klassisches BibTeX, ohne zusätzliche Software.
+
+### Allgemein
+- **Speichern und Laden** im XML- und JSON-Format, inklusive Formalitäten und Quellen. Das zuletzt verwendete Dokument wird beim Start wiederhergestellt.
+- **Helles oder dunkles Design** und verschiedene Akzentfarben.
 - **Tastenkürzel** für die wichtigsten Aktionen.
 
-## Plattformen und Start
+## Voraussetzungen
 
-JOutlinr basiert auf Java und läuft unter **Windows, Linux und macOS**.
+- **Java 21** oder neuer zum Ausführen der JAR-Datei.
+- Eine **TeX-Distribution** für die PDF-Vorschau, z. B. [MiKTeX](https://miktex.org/) (Windows), [TeX Live](https://tug.org/texlive/) (Linux) oder [MacTeX](https://tug.org/mactex/) (macOS). TeXlinr nutzt `latexmk`, falls vorhanden, sonst `pdflatex` und `bibtex`. Die Programme müssen im `PATH` liegen. TeX gehört nicht zum Lieferumfang von TeXlinr.
+- Zum Selbstbauen zusätzlich **JDK 21 oder neuer** und **Apache Maven**.
 
-### Windows: direkt starten
-
-Für Windows gibt es zusätzlich eine `.exe` mit mitgelieferter Java-Laufzeitumgebung (JRE) – damit lässt sich JOutlinr starten, ohne Java separat installieren zu müssen. Dafür die .zip unter Releases entpacken.
-
-### Alle Plattformen: JAR-Datei ausführen
+## Starten
 
 Mit installierter Java-Laufzeitumgebung lässt sich die JAR-Datei direkt starten:
 
 ```bash
-java -jar JOutlinr-1.1.0.jar
+java -jar TeXlinr-1.0.0.jar
 ```
 
 Der genaue Dateiname hängt vom jeweiligen Build ab.
 
-### Selbst kompilieren
-
-Alternativ lässt sich das Repository klonen und JOutlinr mit Maven selbst bauen (siehe unten) – unabhängig vom Betriebssystem.
-
-## Voraussetzungen für den Build
-
-- **JDK 21 oder neuer**
-- **Apache Maven**
-- Git (optional, zum Klonen des Repositorys)
-
-Die benötigte Java-Version ist in der Maven-Konfiguration festgelegt. Für die fertige JAR-Datei genügt eine dazu kompatible Java-Laufzeitumgebung.
-
 ## Selbst bauen
 
-### 1. Repository klonen
-
-```bash
-git clone https://github.com/nille10/JOutlinr.git
-cd JOutlinr
-```
-
-### 2. Projekt kompilieren und paketieren
+Im Projektordner:
 
 ```bash
 mvn clean package
+java -jar target/TeXlinr-1.0.0.jar
 ```
 
-Maven lädt die benötigten Abhängigkeiten herunter und erstellt das Anwendungspaket.
+Maven lädt die Abhängigkeiten herunter und erstellt ein gebündeltes Paket. Alternativ lässt sich das Projekt in Eclipse oder IntelliJ IDEA importieren und direkt starten.
 
-### 3. Anwendung starten
+## Schnellstart
 
-```bash
-java -jar target/JOutlinr-1.1.0.jar
-```
+1. Einträge in der Gliederung anlegen und Text als LaTeX in das Textfeld schreiben.
+2. Unter **Formalitäten** Titel, Autoren und Betreuer ausfüllen.
+3. Bilder im Bereich **Bilder** hinzufügen und im Text mit `\fig:label` einfügen.
+4. Quellen im Bereich **Quellen** erfassen und mit `\cite:schluessel` zitieren.
+5. Mit **F5** das PDF bauen.
 
-Der genaue Dateiname kann je nach Build-Version abweichen. Alternativ lässt sich das Projekt auch direkt in einer Java-IDE wie Eclipse oder IntelliJ IDEA importieren und starten.
+Zum Ausprobieren gibt es ein Beispielprojekt, in dem alle Funktionen verwendet werden.
 
-## LaTeX-Export
+## Herkunft und Lizenz
 
-JOutlinr unterstützt den Export von Gliederungen nach LaTeX, sodass sich Einträge aus der Planung direkt in die Dokumentstruktur übernehmen lassen. Es stehen zwei Modi zur Verfügung:
+TeXlinr ist von **JOutlinr** abgeleitet, einem Outliner von nille10 und 1ngbert ([github.com/nille10/JOutlinr](https://github.com/nille10/JOutlinr)). Das Grundgerüst aus Baumansicht, Spalten, Speichern und Rückgängig stammt daraus.
 
-- **Standardmodus** für einen unkomplizierten Export.
-- **Expertenmodus** mit zusätzlichen Einstellungen, unter anderem zu Titelseite und Dokumentmetadaten.
+Beide Projekte stehen unter der **MIT-Lizenz**, siehe [`LICENSE`](LICENSE). Die Lizenzen der verwendeten Fremdsoftware stehen in [`THIRD_PARTY_NOTICES.txt`](THIRD_PARTY_NOTICES.txt).
 
-## Projektstatus & Mitwirkung
-
-JOutlinr befindet sich in der **Beta-Phase**. Die zentralen Funktionen – Gliederungsverwaltung, Speichern/Laden und LaTeX-Export – sind vorhanden, Bedienung und Funktionsumfang können sich im Laufe der Entwicklung aber noch ändern.
-
-Fehlerberichte, Verbesserungsvorschläge und Feedback sind willkommen – am liebsten über die [Issues im GitHub-Repository](https://github.com/nille10/JOutlinr/issues).
+Teile des Quellcodes wurden mit Hilfe von KI erzeugt und sind im jeweiligen Dateikopf als „KI generiert" gekennzeichnet.
 
 ## Verwendete Technologien
 
-- **Java / Java Swing** – plattformübergreifende Desktop-Anwendung
-- **FlatLaf** – modernes Erscheinungsbild für Swing
-- **Apache Maven** – Build- und Abhängigkeitsverwaltung
-- **MVC-Architektur** – Trennung von Modell, Oberfläche und Steuerungslogik
-- **XML und JSON** – Dateiformat für die Speicherung
-- **Maven Shade Plugin** – Erstellung des gebündelten Anwendungspakets
+- **Java / Java Swing**, plattformübergreifende Desktop-Anwendung
+- **FlatLaf**, modernes Erscheinungsbild für Swing
+- **Apache PDFBox**, Darstellung der PDF-Vorschau
+- **Apache Maven** mit dem Shade Plugin, Build und gebündeltes Paket
+- **LaTeX / BibTeX** der lokalen TeX-Distribution, Satz und Literaturverzeichnis
+- **MVC-Architektur**, Trennung von Modell, Oberfläche und Steuerungslogik
+- **XML und JSON** als Dateiformate
 
-## Lizenz
+## Mitwirkung
 
-JOutlinr steht unter der **MIT-Lizenz**. Die genauen Bedingungen stehen in der Datei [`LICENSE`](LICENSE) im Repository.
+TeXlinr befindet sich in der **Beta-Phase**. Fehlerberichte und Verbesserungsvorschläge sind willkommen.

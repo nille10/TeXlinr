@@ -1,12 +1,12 @@
-# JOutlinr -- Benutzerhandbuch
+# TeXlinr -- Benutzerhandbuch
 
-> **Version:** 1.0\
+> **Version:** 1.0.0\
 > **Dokumenttyp:** Benutzerhandbuch\
 > **Sprache:** Deutsch
 
 ## Inhaltsverzeichnis
 
--   [1. Über JOutlinr](#1-über-joutlinr)
+-   [1. Über TeXlinr](#1-über-joutlinr)
 -   [2. Das Hauptfenster](#2-das-hauptfenster)
 -   [3. Mit Gliederungen arbeiten](#3-mit-gliederungen-arbeiten)
 -   [4. Menübefehle](#4-menübefehle)
@@ -20,11 +20,14 @@
 -   [6. Zusatzspalten](#6-zusatzspalten)
 -   [7. Textbereich und Statusanzeige](#7-textbereich-und-statusanzeige)
 -   [8. Dateien und Speichern](#8-dateien-und-speichern)
+-   [9. LaTeX, Bilder, Quellen und Vorschau](#9-latex-bilder-quellen-und-vorschau)
 
-## 1. Über JOutlinr
+## 1. Über TeXlinr
 
-JOutlinr ist eine Desktop-Anwendung zur Bearbeitung hierarchischer
-Gliederungen. Inhalte werden als Baum aus Einträgen organisiert.
+TeXlinr ist eine Desktop-Anwendung zur Bearbeitung hierarchischer
+Gliederungen für wissenschaftliche Arbeiten. Es ist von JOutlinr
+abgeleitet und erweitert es um LaTeX-Export, PDF-Vorschau, Bilder-,
+Formalitäten- und Quellenverwaltung. Inhalte werden als Baum aus Einträgen organisiert.
 Einträge können auf unterschiedlichen Ebenen angeordnet und ein- oder
 ausgeklappt werden. Zusätzlich lassen sich Spalten verwalten; ein
 separater Textbereich dient zur Bearbeitung ergänzender Inhalte zum
@@ -41,33 +44,33 @@ deshalb hier nicht vorausgesetzt.
 Das Hauptfenster besteht aus folgenden Bereichen:
 
   -----------------------------------------------------------------------
-  Bereich                             Beschreibung
+Bereich                             Beschreibung
   ----------------------------------- -----------------------------------
-  Menüleiste                          Enthält Datei-, Bearbeitungs-,
-                                      Gliederungs- und Ansichtsbefehle
-                                      sowie Einstellungen und Hilfe.
+Menüleiste                          Enthält Datei-, Bearbeitungs-,
+Gliederungs- und Ansichtsbefehle
+sowie Einstellungen und Hilfe.
 
-  Toolbar                             Bietet Schaltflächen für neue
-                                      Wurzel-, normale und untergeordnete
-                                      Einträge, Löschen, Ein-/Ausrücken,
-                                      Auf-/Zuklappen und neue Spalten.
+Toolbar                             Bietet Schaltflächen für neue
+Wurzel-, normale und untergeordnete
+Einträge, Löschen, Ein-/Ausrücken,
+Auf-/Zuklappen und neue Spalten.
 
-  Gliederungsbereich                  Zeigt Einträge hierarchisch in
-                                      einer Baumansicht.
+Gliederungsbereich                  Zeigt Einträge hierarchisch in
+einer Baumansicht.
 
-  Spaltenbereich                      Zeigt zusätzliche Spaltenwerte
-                                      zeilenweise passend zu den
-                                      sichtbaren Gliederungseinträgen.
+Spaltenbereich                      Zeigt zusätzliche Spaltenwerte
+zeilenweise passend zu den
+sichtbaren Gliederungseinträgen.
 
-  Textbereich (`TextWindow`)          Separater Bereich für den Inhalt,
-                                      der mit dem ausgewählten Eintrag
-                                      verbunden ist.
+Textbereich (`TextWindow`)          Separater Bereich für den Inhalt,
+der mit dem ausgewählten Eintrag
+verbunden ist.
 
-  Statusleiste                        Zeigt beim Start den Status
-                                      „Bereit" an.
+Statusleiste                        Zeigt beim Start den Status
+„Bereit" an.
   -----------------------------------------------------------------------
 
-Das Fenster startet mit einer Größe von 950 × 640 Pixeln. Die
+Das Fenster startet mit einer Größe von 1400 × 720 Pixeln. Die
 Mindestgröße beträgt 600 × 400 Pixel. Der obere Gliederungsbereich und
 der darunterliegende Textbereich sind durch einen verschiebbaren Trenner
 voneinander getrennt. Der Trenner ist beim Start ungefähr bei 60 % der
@@ -159,29 +162,29 @@ vorliegenden Code ein fest zugewiesenes Tastaturkürzel.
 Das Menü **Datei** bündelt die Dateioperationen.
 
   -----------------------------------------------------------------------
-  Befehl                              Funktion
+Befehl                              Funktion
   ----------------------------------- -----------------------------------
-  Neu                                 Startet die Aktion zum Erstellen
-                                      einer neuen Datei bzw. eines neuen
-                                      Dokuments.
+Neu                                 Startet die Aktion zum Erstellen
+einer neuen Datei bzw. eines neuen
+Dokuments.
 
-  Öffnen                              Startet das Öffnen einer
-                                      vorhandenen Datei.
+Öffnen                              Startet das Öffnen einer
+vorhandenen Datei.
 
-  Speichern                           Startet das Speichern des aktuellen
-                                      Dokuments.
+Speichern                           Startet das Speichern des aktuellen
+Dokuments.
 
-  Speichern unter                     Startet das Speichern unter einem
-                                      anderen Namen oder Pfad.
+Speichern unter                     Startet das Speichern unter einem
+anderen Namen oder Pfad.
 
-  Als LaTeX exportieren               Startet den LaTeX-Export.
+Als LaTeX exportieren               Startet den LaTeX-Export.
 
-  Schließen                           Prüft vor dem Schließen den
-                                      Speicherstatus. Bei erfolgreicher
-                                      bzw. nicht fehlgeschlagener
-                                      Speicherprüfung wird der zuletzt
-                                      verwendete Pfad gesichert und das
-                                      Fenster geschlossen.
+Schließen                           Prüft vor dem Schließen den
+Speicherstatus. Bei erfolgreicher
+bzw. nicht fehlgeschlagener
+Speicherprüfung wird der zuletzt
+verwendete Pfad gesichert und das
+Fenster geschlossen.
   -----------------------------------------------------------------------
 
 Die genaue Dateiauswahl, die unterstützten Importformate und die
@@ -193,24 +196,24 @@ Das Menü **Bearbeiten** enthält allgemeine Bearbeitungsbefehle sowie die
 Verwaltung zusätzlicher Spalten.
 
   -----------------------------------------------------------------------
-  Befehl                              Funktion
+Befehl                              Funktion
   ----------------------------------- -----------------------------------
-  Rückgängig                          Macht die letzte unterstützte
-                                      Änderung rückgängig.
+Rückgängig                          Macht die letzte unterstützte
+Änderung rückgängig.
 
-  Wiederholen                         Stellt eine zuvor rückgängig
-                                      gemachte Änderung wieder her.
+Wiederholen                         Stellt eine zuvor rückgängig
+gemachte Änderung wieder her.
 
-  Spalte hinzufügen                   Fügt eine neue Spalte hinzu.
+Spalte hinzufügen                   Fügt eine neue Spalte hinzu.
 
-  Ausschneiden                        Führt die Ausschneiden-Aktion für
-                                      die aktuelle Auswahl aus.
+Ausschneiden                        Führt die Ausschneiden-Aktion für
+die aktuelle Auswahl aus.
 
-  Kopieren                            Führt die Kopieren-Aktion für die
-                                      aktuelle Auswahl aus.
+Kopieren                            Führt die Kopieren-Aktion für die
+aktuelle Auswahl aus.
 
-  Einfügen                            Führt die Einfügen-Aktion aus.
-  -----------------------------------------------------------------------
+Einfügen                            Führt die Einfügen-Aktion aus.
+-----------------------------------------------------------------------
 
 „Spalte hinzufügen" ist im Menü mit einem Tastaturkürzel belegt, das die
 Menü-Shortcut-Taste und `Umschalt + N` kombiniert. Die konkrete Taste
@@ -221,21 +224,21 @@ für den Menü-Shortcut hängt vom Betriebssystem ab.
 Das Menü **Gliederung** enthält Befehle zur Struktur der Baumansicht.
 
   -----------------------------------------------------------------------
-  Befehl                              Funktion
+Befehl                              Funktion
   ----------------------------------- -----------------------------------
-  Neuer Eintrag                       Erstellt einen neuen
-                                      Gliederungseintrag.
+Neuer Eintrag                       Erstellt einen neuen
+Gliederungseintrag.
 
-  Neuer Untereintrag                  Erstellt einen untergeordneten
-                                      Eintrag.
+Neuer Untereintrag                  Erstellt einen untergeordneten
+Eintrag.
 
-  Eintrag löschen                     Löscht den ausgewählten Eintrag.
+Eintrag löschen                     Löscht den ausgewählten Eintrag.
 
-  Eintrag ausrücken                   Verschiebt den Eintrag in der
-                                      Hierarchie nach außen.
+Eintrag ausrücken                   Verschiebt den Eintrag in der
+Hierarchie nach außen.
 
-  Eintrag einrücken                   Verschiebt den Eintrag in der
-                                      Hierarchie nach innen.
+Eintrag einrücken                   Verschiebt den Eintrag in der
+Hierarchie nach innen.
   -----------------------------------------------------------------------
 
 Die genaue Wirkung und die Voraussetzungen der einzelnen Aktionen werden
@@ -247,21 +250,21 @@ Das Menü **Ansicht** enthält Befehle zum Auf- und Zuklappen von
 Einträgen.
 
   -----------------------------------------------------------------------
-  Befehl                              Status im bereitgestellten Code
+Befehl                              Status im bereitgestellten Code
   ----------------------------------- -----------------------------------
-  Eintrag aufklappen                  Der Menüeintrag wird erstellt und
-                                      der Aktion zugeordnet.
+Eintrag aufklappen                  Der Menüeintrag wird erstellt und
+der Aktion zugeordnet.
 
-  Eintrag zuklappen                   Der Eintrag wird erstellt, ist im
-                                      Menü aber derzeit auskommentiert
-                                      und daher nicht sichtbar.
+Eintrag zuklappen                   Der Eintrag wird erstellt, ist im
+Menü aber derzeit auskommentiert
+und daher nicht sichtbar.
 
-  Alle aufklappen                     Der Befehl wird dem Menü
-                                      hinzugefügt.
+Alle aufklappen                     Der Befehl wird dem Menü
+hinzugefügt.
 
-  Alle zuklappen                      Der Eintrag wird erstellt, ist im
-                                      Menü aber derzeit auskommentiert
-                                      und daher nicht sichtbar.
+Alle zuklappen                      Der Eintrag wird erstellt, ist im
+Menü aber derzeit auskommentiert
+und daher nicht sichtbar.
   -----------------------------------------------------------------------
 
 Die Tastaturbindung `Enter` klappt den ausgewählten Eintrag auf oder zu.
@@ -330,42 +333,42 @@ Auf macOS ist dies normalerweise `⌘`; auf Windows und vielen
 Linux-Desktops normalerweise `Strg`.
 
   ------------------------------------------------------------------------------------
-  Tastenkombination                    Funktion                Hinweis
+Tastenkombination                    Funktion                Hinweis
   ------------------------------------ ----------------------- -----------------------
-  `Menü-Shortcut + ←`                  Eintrag ausrücken       Am fokussierten Baum
-                                                               registriert.
+`Menü-Shortcut + ←`                  Eintrag ausrücken       Am fokussierten Baum
+registriert.
 
-  `Menü-Shortcut + →`                  Eintrag einrücken       Am fokussierten Baum
-                                                               registriert.
+`Menü-Shortcut + →`                  Eintrag einrücken       Am fokussierten Baum
+registriert.
 
-  `Enter`                              Ausgewählten Eintrag    Wenn kein Eintrag
-                                       auf- oder zuklappen     ausgewählt ist,
-                                                               geschieht nichts.
+`Enter`                              Ausgewählten Eintrag    Wenn kein Eintrag
+auf- oder zuklappen     ausgewählt ist,
+geschieht nichts.
 
-  `Menü-Shortcut + Umschalt + Enter`   Alle Einträge auf- oder Klappt alle auf, wenn
-                                       zuklappen               keiner aufgeklappt ist;
-                                                               andernfalls alle zu.
+`Menü-Shortcut + Umschalt + Enter`   Alle Einträge auf- oder Klappt alle auf, wenn
+zuklappen               keiner aufgeklappt ist;
+andernfalls alle zu.
 
-  `Menü-Shortcut + X`                  Ausgewählten Eintrag    Am fokussierten Baum
-                                       ausschneiden            registriert.
+`Menü-Shortcut + X`                  Ausgewählten Eintrag    Am fokussierten Baum
+ausschneiden            registriert.
 
-  `Menü-Shortcut + C`                  Ausgewählten Eintrag    Am fokussierten Baum
-                                       kopieren                registriert.
+`Menü-Shortcut + C`                  Ausgewählten Eintrag    Am fokussierten Baum
+kopieren                registriert.
 
-  `Menü-Shortcut + V`                  Eintrag einfügen        Am fokussierten Baum
-                                                               registriert.
+`Menü-Shortcut + V`                  Eintrag einfügen        Am fokussierten Baum
+registriert.
 
-  `Rücktaste` (`Backspace`)            Ausgewählten Eintrag    Am fokussierten Baum
-                                       löschen                 registriert.
+`Rücktaste` (`Backspace`)            Ausgewählten Eintrag    Am fokussierten Baum
+löschen                 registriert.
 
-  `Menü-Shortcut + Enter`              Ausgewählten Eintrag    Startet die Bearbeitung
-                                       umbenennen              des Eintrags.
+`Menü-Shortcut + Enter`              Ausgewählten Eintrag    Startet die Bearbeitung
+umbenennen              des Eintrags.
 
-  `Menü-Shortcut + Umschalt + N`       Neue Spalte hinzufügen  Im Menü „Bearbeiten"
-                                                               definiert.
+`Menü-Shortcut + Umschalt + N`       Neue Spalte hinzufügen  Im Menü „Bearbeiten"
+definiert.
 
-  `Menü-Shortcut + Komma`              Einstellungen öffnen    Im Menü „Einstellungen"
-                                                               definiert.
+`Menü-Shortcut + Komma`              Einstellungen öffnen    Im Menü „Einstellungen"
+definiert.
   ------------------------------------------------------------------------------------
 
 ## 6. Zusatzspalten
@@ -431,3 +434,70 @@ Der Quellcode zeigt außerdem einen Aufruf, der den aktuellen Zustand
 nach dem initialen Import als gespeichert markiert. Die genaue
 Behandlung von Speicherfehlern, Dateiformaten und Rückfragen hängt von
 `FileController`, `FileActions` und den zugehörigen Dialogen ab.
+
+## 9. LaTeX, Bilder, Quellen und Vorschau
+
+Links neben dem Arbeitsbereich wechselt die Navigation zwischen vier
+Bereichen: **Gliederung** (Strg+1), **Bilder** (Strg+2), **Formalitäten**
+(Strg+3) und **Quellen** (Strg+4). Rechts zeigt die **PDF-Vorschau** das
+fertige Dokument. Der Trenner zwischen Arbeitsbereich und Vorschau lässt
+sich mit der Maus verschieben.
+
+### 9.1 Notizen als LaTeX
+
+Der Text eines Eintrags wird unverändert in das Dokument übernommen.
+Sonderzeichen wie `%`, `&`, `_` und `#` müssen deshalb wie in LaTeX mit
+einem Backslash geschrieben werden. Zwei Kürzel werden beim Export
+aufgelöst:
+
+| Kürzel | Wirkung |
+|---|---|
+| `\fig:label` | Fügt die `figure`-Umgebung des Bildes mit diesem Label ein. |
+| `\cite:schluessel` | Literaturverweis. Mehrere Quellen werden mit Komma getrennt, z. B. `\cite:Gamma1995,Fowler2002`. |
+
+Ein unbekanntes Label oder ein unbekannter Schlüssel erscheint im PDF als
+sichtbare Fehlermeldung. Beim Tippen von `\fig:` oder `\cite:` schlägt
+eine Vervollständigung passende Einträge vor.
+
+### 9.2 Bilder
+
+Der Bereich **Bilder** zeigt alle Dateien des Ordners `img/`. Bilder
+lassen sich per Drag-and-drop oder über **Bilder hinzufügen** übernehmen.
+Pro Bild werden Platzierung, Breite (in Prozent der Textbreite),
+Beschriftung und Label festgelegt. Der fertige LaTeX-Code wird angezeigt
+und lässt sich kopieren. Die Angaben stehen in `img/figures.properties`.
+
+### 9.3 Formalitäten
+
+Hier werden Vorlage (Standard oder Experte), Titelseite, Fachbereich,
+Abteilung, Titel, Art der Arbeit, Ort, Autoren, Betreuer, Logo,
+Seitenbreite, Seitenumbrüche und Seitenzahlen eingestellt. Das Logo wird
+über das Label eines Bildes gewählt. Die Angaben werden mit dem Projekt
+gespeichert.
+
+### 9.4 Quellen
+
+Im Bereich **Quellen** werden Literaturangaben erfasst. Es gibt die Typen
+Buch, Buchkapitel, Zeitschriftenartikel, Konferenzbeitrag, Internetseite,
+Software, Abschlussarbeit, Bericht und Sonstiges. Jede Quelle hat einen
+eindeutigen Schlüssel, mit dem sie im Text zitiert wird. Daraus erzeugt
+TeXlinr beim Bauen die Datei `references.bib` und das
+Literaturverzeichnis (klassisches BibTeX).
+
+### 9.5 PDF bauen
+
+**F5** oder **Strg+B** (Menü-Shortcut + B) baut das Dokument und zeigt es
+in der Vorschau an. Dafür muss eine TeX-Distribution (MiKTeX, TeX Live
+oder MacTeX) installiert sein und im `PATH` liegen. Bei Fehlern erscheint
+ein Dialog mit den Fehlerzeilen und dem vollständigen Log. Die letzte
+gute Vorschau bleibt stehen.
+
+In der Vorschau zoomt Strg + Mausrad, Ziehen verschiebt die Seite und ein
+Doppelklick passt die Seite an die Breite an. Strg+0 passt an, Strg+1
+setzt auf 100 %.
+
+### 9.6 Suche
+
+**Shift+Shift** öffnet eine schwebende Suche über den Inhalt aller
+Notizen. Das Wort eingeben und mit **Enter** suchen, dann mit den
+Pfeilen durch die Treffer springen. **Esc** schließt die Suche.

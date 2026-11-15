@@ -198,7 +198,7 @@ public class Menubar extends JMenuBar {
     private void showAbout(JFrame mainJFrame) {
         try {
             URI manualUri = new URI(
-                    "https://github.com/nille10/JOutlinr/blob/main/JOutlinr_Manual.md"
+                    "https://github.com/nille10/TeXlinr/blob/main/Handbuch.md"
             );
 
             if (Desktop.isDesktopSupported()
@@ -210,7 +210,7 @@ public class Menubar extends JMenuBar {
                         "Der Browser kann nicht automatisch geöffnet werden.\n"
                                 + "Du findest das Handbuch hier:\n"
                                 + manualUri,
-                        "Über JOutlinr",
+                        "Über TeXlinr",
                         JOptionPane.INFORMATION_MESSAGE
                 );
             }
@@ -219,8 +219,8 @@ public class Menubar extends JMenuBar {
                     mainJFrame,
                     "Das Handbuch konnte nicht im Browser geöffnet werden.\n"
                             + "Öffne diesen Link manuell:\n"
-                            + "https://github.com/nille10/JOutlinr/blob/main/JOutlinr_Manual.md",
-                    "Über JOutlinr",
+                            + "https://github.com/nille10/TeXlinr/blob/main/TeXlinr.md",
+                    "Über TeXlinr",
                     JOptionPane.INFORMATION_MESSAGE
             );
         }
