@@ -274,7 +274,7 @@ public class LATEXParser {
         tex.append("\t\t\t\\vfill\n");
         tex.append("\t\t\t\\centering\n");
         tex.append("\t\t\t\\vspace{12.0cm}\n");
-        tex.append("\t\t\t\\includegraphics[width=\\paperwidth]{logo/hsel-welle-grey}%\n");
+        tex.append("\t\t\t\\includegraphics[width=\\paperwidth]{img/hsel-welle-grey}%\n");
         tex.append("\t\t\t\\vfill\n");
         tex.append("}}}\n\n");
 

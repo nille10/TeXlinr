@@ -11,6 +11,7 @@ import action.manager.UndoManager;
 import action.actions.outline.*;
 import controller.*;
 import model.LatexExportMode;
+import model.image.ImageLibrary;
 import model.LatexMetadata;
 import model.OutlineNode;
 import service.LatexCompiler;
@@ -85,6 +86,9 @@ public class MainWindow extends JFrame {
     /** Der Controller für Speichern, Laden und Exportieren von Dateien. */
     private final FileController fileController;
 
+    /** Der Bilderordner {@code img/} samt Angaben zu den Abbildungen. */
+    private final ImageLibrary imageLibrary;
+
 
     /**
      * Baut das Hauptfenster komplett auf.
@@ -145,7 +149,8 @@ public class MainWindow extends JFrame {
 
         // Arbeitsbereiche
         TreeView treeView = new TreeView(outlinePanel, textWindow);
-        ImageManagementPanel imageManagementPanel = new ImageManagementPanel();
+        imageLibrary = new ImageLibrary(ImageLibrary.defaultDirectory());
+        ImageManagementPanel imageManagementPanel = new ImageManagementPanel(imageLibrary);
         FormalitiesPanel formalitiesPanel = new FormalitiesPanel();
 
         WorkspacePanel workspacePanel = new WorkspacePanel(
@@ -197,6 +202,7 @@ public class MainWindow extends JFrame {
             public void windowClosing(WindowEvent e) {
                 if(fileController.checkSavedStatus() != SaveStatus.SAVE_FAILED) {
                     fileController.saveLastPath();
+                    imageManagementPanel.flush();
                     preview.dispose();
                     deleteRecursively(buildDir);
                     dispose();
@@ -220,6 +226,11 @@ public class MainWindow extends JFrame {
      * @throws IOException wenn die Datei nicht geschrieben werden konnte
      */
     private void exportLatex(LatexExportMode mode, LatexMetadata metadata, Path texFile) throws IOException {
+        // Bilder aus img/ (auch von außen hineinkopierte) in den Build-Ordner legen,
+        // damit \includegraphics{img/...} sie findet.
+        imageLibrary.refresh();
+        imageLibrary.copyImagesTo(texFile.toAbsolutePath().getParent());
+
         fileController.exportLatexTo(mode, metadata, texFile);
     }
 
@@ -402,6 +413,13 @@ public class MainWindow extends JFrame {
      * @return das {@link PDFPreviewPanel} dieses Fensters
      */
     public PDFPreviewPanel getPreview() { return preview; }
+
+    /**
+     * Liefert den Bilderordner samt Angaben zu den Abbildungen.
+     *
+     * @return die {@link ImageLibrary} dieses Fensters
+     */
+    public ImageLibrary getImageLibrary() { return imageLibrary; }
 
     /**
      * Liefert das Hauptfenster.
