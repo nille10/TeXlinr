@@ -187,7 +187,8 @@ public class FileController {
      */
     public void exportAsLatex() {
 
-        LATEXParser latexParser = new LATEXParser(outlineController, mainWindow, treeModel);
+        LATEXParser latexParser = new LATEXParser(outlineController, mainWindow, treeModel,
+                mainWindow.getImageLibrary());
 
         try {
             latexParser.exportAsLatex();
@@ -210,7 +211,8 @@ public class FileController {
      * @see LATEXParser#exportTo(Path, LatexExportMode, LatexMetadata)
      */
     public void exportLatexTo(LatexExportMode mode, LatexMetadata metadata, Path texFile) throws IOException {
-        new LATEXParser(outlineController, mainWindow, treeModel).exportTo(texFile, mode, metadata);
+        new LATEXParser(outlineController, mainWindow, treeModel, mainWindow.getImageLibrary())
+                .exportTo(texFile, mode, metadata);
     }
 
     /**

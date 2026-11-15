@@ -1,22 +1,60 @@
 package view;
 
+import model.LatexExportMode;
+import model.LatexMetadata;
+import model.LatexSettings;
+import model.PageBreakMode;
+
 import javax.swing.*;
 import javax.swing.border.EmptyBorder;
+import javax.swing.event.DocumentEvent;
+import javax.swing.event.DocumentListener;
+import javax.swing.text.JTextComponent;
 import java.awt.*;
+import java.util.ArrayList;
+import java.util.List;
 
 /**
- * Oberfläche für Dokument-Formalitäten.
+ * Oberfläche für alle Einstellungen des LaTeX-Dokuments ("Formalitäten").
  *
- * Hinweis: Diese Eingabefelder bilden zunächst die Benutzeroberfläche.
- * Die Werte sind noch nicht mit einem Export- oder Dokumentmodell verbunden.
+ * <p>Hier steht, was früher beim Export in einem eigenen Dialog abgefragt wurde
+ * (Fachbereich, Abteilung, Titel, Art der Arbeit, Ort, Autoren, Betreuer), außerdem
+ * die Dokumentvorlage und die Seiteneinstellungen. Das Panel hält keine eigene
+ * Geschäftslogik: Der Zustand wird als {@link LatexSettings} gelesen
+ * ({@link #getSettings()}) und gesetzt ({@link #setSettings(LatexSettings)}), z. B. beim
+ * Öffnen eines Projekts. Änderungen des Benutzers werden über
+ * {@link #addChangeListener(Runnable)} gemeldet, damit das Projekt als geändert markiert
+ * werden kann.</p>
+ *
+ * <p>Felder, die im aktuellen Zustand keine Wirkung haben, sind deaktiviert: Die
+ * Titelseiten-Angaben gibt es nur bei der Vorlage "Benutzerdefiniert" mit eingeschalteter
+ * Titelseite. Die Autoren gelten für beide Vorlagen.</p>
  */
 public class FormalitiesPanel extends JPanel {
 
-    private final JSpinner pageWidth;
-    private final JComboBox<String> pageUnit;
-    private final JComboBox<String> pageBreakMode;
-    private final JCheckBox coverPage;
-    private final JCheckBox showPageNumbers;
+    private static final int TEXT_COLUMNS = 28;
+
+    private final JComboBox<LatexExportMode> template =
+            new JComboBox<>(new LatexExportMode[]{LatexExportMode.STANDARD, LatexExportMode.EXPERT});
+    private final JTextArea autorenArea = new JTextArea(3, TEXT_COLUMNS);
+
+    private final JCheckBox coverPage = new JCheckBox("Titelseite und Inhaltsverzeichnis einfügen");
+    private final JTextField titelField = new JTextField(TEXT_COLUMNS);
+    private final JTextField artField = new JTextField(TEXT_COLUMNS);
+    private final JTextField fachbereichField = new JTextField(TEXT_COLUMNS);
+    private final JTextField abteilungField = new JTextField(TEXT_COLUMNS);
+    private final JTextField ortField = new JTextField(TEXT_COLUMNS);
+    private final JTextArea betreuerArea = new JTextArea(3, TEXT_COLUMNS);
+
+    private final JSpinner pageWidth = new JSpinner(new SpinnerNumberModel(210, 50, 500, 1));
+    private final JComboBox<String> pageUnit = new JComboBox<>(new String[]{"mm", "cm", "inch"});
+    private final JComboBox<PageBreakMode> pageBreakMode = new JComboBox<>(PageBreakMode.values());
+    private final JCheckBox showPageNumbers = new JCheckBox("Seitenzahlen anzeigen");
+
+    /** Felder, die nur bei Vorlage "Benutzerdefiniert" mit Titelseite etwas bewirken. */
+    private final List<JComponent> titlePageFields = new ArrayList<>();
+    private final List<Runnable> changeListeners = new ArrayList<>();
+    private boolean loading;
 
     public FormalitiesPanel() {
         super(new BorderLayout(10, 10));
@@ -26,72 +64,262 @@ public class FormalitiesPanel extends JPanel {
         heading.setFont(heading.getFont().deriveFont(Font.BOLD, 18f));
         add(heading, BorderLayout.NORTH);
 
-        JPanel form = new JPanel(new GridBagLayout());
-        form.setBorder(new EmptyBorder(16, 4, 4, 4));
-        GridBagConstraints c = new GridBagConstraints();
-        c.insets = new Insets(7, 6, 7, 12);
-        c.anchor = GridBagConstraints.WEST;
-        c.fill = GridBagConstraints.HORIZONTAL;
-
-        pageWidth = new JSpinner(new SpinnerNumberModel(210, 50, 500, 1));
-        pageUnit = new JComboBox<>(new String[]{"mm", "cm", "inch"});
-        pageBreakMode = new JComboBox<>(new String[]{
-                "Automatisch", "Vor jedem Haupteintrag", "Manuell"
+        template.setRenderer(new DefaultListCellRenderer() {
+            @Override
+            public Component getListCellRendererComponent(JList<?> list, Object value, int index,
+                                                          boolean isSelected, boolean cellHasFocus) {
+                super.getListCellRendererComponent(list, value, index, isSelected, cellHasFocus);
+                if (value == LatexExportMode.STANDARD) {
+                    setText("Standard – einfacher Artikel");
+                } else if (value == LatexExportMode.EXPERT) {
+                    setText("Benutzerdefiniert – Studienarbeit mit Titelseite");
+                }
+                return this;
+            }
         });
-        coverPage = new JCheckBox("Deckblatt verwenden");
-        showPageNumbers = new JCheckBox("Seitenzahlen anzeigen", true);
+
+        autorenArea.setToolTipText("Ein Autor pro Zeile");
+        betreuerArea.setToolTipText("Ein Betreuer pro Zeile");
+        titelField.setToolTipText("Titel auf der Titelseite");
+
+        JPanel form = new JPanel(new GridBagLayout());
+        form.setBorder(new EmptyBorder(12, 4, 4, 4));
 
         int row = 0;
-        addRow(form, c, row++, "Seitenbreite:", pageWidth, pageUnit);
-        addRow(form, c, row++, "Seitenumbrüche:", pageBreakMode);
-        addRow(form, c, row++, "Deckblatt:", coverPage);
-        addRow(form, c, row++, "Seitennummerierung:", showPageNumbers);
+        addSection(form, row++, "Dokument");
+        addRow(form, row++, "Dokumentvorlage:", template, false);
+        addRow(form, row++, "Autoren:", new JScrollPane(autorenArea), true);
 
-        GridBagConstraints filler = (GridBagConstraints) c.clone();
-        filler.gridx = 0;
-        filler.gridy = row;
-        filler.weighty = 1;
-        form.add(Box.createVerticalGlue(), filler);
+        addSection(form, row++, "Titelseite");
+        addRow(form, row++, "Titelseite:", coverPage, false);
+        addRow(form, row++, "Titel der Arbeit:", titelField, false, titelField);
+        addRow(form, row++, "Art der Arbeit:", artField, false, artField);
+        addRow(form, row++, "Fachbereich:", fachbereichField, false, fachbereichField);
+        addRow(form, row++, "Abteilung:", abteilungField, false, abteilungField);
+        addRow(form, row++, "Ort:", ortField, false, ortField);
+        addRow(form, row++, "Betreuer:", new JScrollPane(betreuerArea), true, betreuerArea);
 
-        add(form, BorderLayout.CENTER);
+        addSection(form, row++, "Seite");
+        addRow(form, row++, "Seitenbreite:", flow(pageWidth, pageUnit), false);
+        addRow(form, row++, "Seitenumbrüche:", pageBreakMode, false);
+        addRow(form, row++, "Seitennummerierung:", showPageNumbers, false);
+
+        // füllt die Restbreite, damit die Felder links ihre natürliche Breite behalten
+        GridBagConstraints filler = new GridBagConstraints();
+        filler.gridx = 2;
+        filler.gridy = 0;
+        filler.weightx = 1;
+        form.add(Box.createHorizontalGlue(), filler);
+
+        TrackingPanel body = new TrackingPanel(new BorderLayout());
+        body.add(form, BorderLayout.NORTH);
+        JScrollPane scroll = new JScrollPane(body);
+        scroll.setBorder(null);
+        scroll.getVerticalScrollBar().setUnitIncrement(16);
+        add(scroll, BorderLayout.CENTER);
 
         JLabel info = new JLabel(
-                "Die Einstellungen werden in einem späteren Schritt mit dem Dokumentexport verbunden.");
+                "Seitenbreite, Seitenumbrüche und Seitennummerierung werden vom Export noch nicht ausgewertet.");
         info.setForeground(Color.GRAY);
         add(info, BorderLayout.SOUTH);
+
+        installListeners();
+        setSettings(LatexSettings.defaults());
     }
 
-    private void addRow(JPanel panel, GridBagConstraints c, int row,
-                        String label, JComponent... components) {
-        c.gridy = row;
+    // ── Öffentliche API ──────────────────────────────────────────────────────
+
+    /**
+     * Liest alle Eingaben als unveränderlichen Datensatz. Texte werden getrimmt,
+     * bei Autoren und Betreuern werden leere Zeilen verworfen.
+     *
+     * @return die aktuellen Einstellungen
+     */
+    public LatexSettings getSettings() {
+        LatexMetadata metadata = new LatexMetadata(
+                fachbereichField.getText().trim(),
+                abteilungField.getText().trim(),
+                titelField.getText().trim(),
+                artField.getText().trim(),
+                parseLines(autorenArea.getText()),
+                ortField.getText().trim(),
+                parseLines(betreuerArea.getText()));
+
+        return new LatexSettings(
+                (LatexExportMode) template.getSelectedItem(),
+                coverPage.isSelected(),
+                metadata,
+                ((Number) pageWidth.getValue()).intValue(),
+                (String) pageUnit.getSelectedItem(),
+                (PageBreakMode) pageBreakMode.getSelectedItem(),
+                showPageNumbers.isSelected());
+    }
+
+    /**
+     * Füllt die Oberfläche mit den übergebenen Einstellungen (z. B. beim Öffnen eines
+     * Projekts). Löst keine Änderungsmeldung aus.
+     *
+     * @param settings die anzuzeigenden Einstellungen; {@code null} setzt die Standardwerte
+     */
+    public void setSettings(LatexSettings settings) {
+        LatexSettings s = settings != null ? settings : LatexSettings.defaults();
+        LatexMetadata m = s.metadata();
+
+        loading = true;
+        try {
+            template.setSelectedItem(s.mode());
+            coverPage.setSelected(s.coverPage());
+            titelField.setText(m.titel());
+            artField.setText(m.artDerArbeit());
+            fachbereichField.setText(m.fachbereich());
+            abteilungField.setText(m.abteilung());
+            ortField.setText(m.ort());
+            autorenArea.setText(String.join("\n", m.autoren()));
+            betreuerArea.setText(String.join("\n", m.betreuer()));
+            pageWidth.setValue(s.pageWidth());
+            pageUnit.setSelectedItem(s.pageUnit());
+            pageBreakMode.setSelectedItem(s.pageBreakMode());
+            showPageNumbers.setSelected(s.showPageNumbers());
+        } finally {
+            loading = false;
+        }
+        updateEnabledState();
+    }
+
+    /**
+     * Registriert einen Listener, der bei jeder Änderung durch den Benutzer aufgerufen wird
+     * (nicht bei {@link #setSettings(LatexSettings)}).
+     *
+     * @param listener der aufzurufende Listener
+     */
+    public void addChangeListener(Runnable listener) {
+        changeListeners.add(listener);
+    }
+
+    // ── Verhalten ────────────────────────────────────────────────────────────
+
+    private void installListeners() {
+        template.addActionListener(e -> { updateEnabledState(); fireChanged(); });
+        coverPage.addActionListener(e -> { updateEnabledState(); fireChanged(); });
+        pageUnit.addActionListener(e -> fireChanged());
+        pageBreakMode.addActionListener(e -> fireChanged());
+        showPageNumbers.addActionListener(e -> fireChanged());
+        pageWidth.addChangeListener(e -> fireChanged());
+
+        DocumentListener textChange = new DocumentListener() {
+            @Override public void insertUpdate(DocumentEvent e)  { fireChanged(); }
+            @Override public void removeUpdate(DocumentEvent e)  { fireChanged(); }
+            @Override public void changedUpdate(DocumentEvent e) { fireChanged(); }
+        };
+        for (JTextComponent field : new JTextComponent[]{
+                titelField, artField, fachbereichField, abteilungField, ortField,
+                autorenArea, betreuerArea}) {
+            field.getDocument().addDocumentListener(textChange);
+        }
+    }
+
+    private void fireChanged() {
+        if (loading) return;
+        for (Runnable listener : changeListeners) {
+            listener.run();
+        }
+    }
+
+    /** Aktiviert nur die Felder, die bei der gewählten Vorlage etwas bewirken. */
+    private void updateEnabledState() {
+        boolean custom = template.getSelectedItem() == LatexExportMode.EXPERT;
+        coverPage.setEnabled(custom);
+        boolean titlePage = custom && coverPage.isSelected();
+        for (JComponent field : titlePageFields) {
+            field.setEnabled(titlePage);
+        }
+    }
+
+    private static List<String> parseLines(String text) {
+        List<String> lines = new ArrayList<>();
+        for (String line : text.split("\\R")) {
+            String trimmed = line.trim();
+            if (!trimmed.isEmpty()) {
+                lines.add(trimmed);
+            }
+        }
+        return lines;
+    }
+
+    // ── Aufbau ───────────────────────────────────────────────────────────────
+
+    private void addSection(JPanel form, int row, String text) {
+        JLabel label = new JLabel(text);
+        label.setFont(label.getFont().deriveFont(Font.BOLD, 13f));
+
+        JPanel header = new JPanel(new BorderLayout(0, 4));
+        header.setOpaque(false);
+        header.add(label, BorderLayout.NORTH);
+        header.add(new JSeparator(), BorderLayout.SOUTH);
+
+        GridBagConstraints c = new GridBagConstraints();
         c.gridx = 0;
-        c.weightx = 0;
-        panel.add(new JLabel(label), c);
+        c.gridy = row;
+        c.gridwidth = 3;
+        c.weightx = 1;
+        c.fill = GridBagConstraints.HORIZONTAL;
+        c.anchor = GridBagConstraints.WEST;
+        c.insets = new Insets(row == 0 ? 0 : 20, 6, 6, 12);
+        form.add(header, c);
+    }
+
+    /**
+     * Fügt eine Zeile mit Beschriftung und Feld hinzu.
+     *
+     * @param topAligned    {@code true} für mehrzeilige Felder, deren Beschriftung oben stehen soll
+     * @param titlePageItems Komponenten, die zur Gruppe der Titelseiten-Felder gehören (zum Aktivieren/Deaktivieren)
+     */
+    private void addRow(JPanel form, int row, String label, JComponent field, boolean topAligned,
+                        JComponent... titlePageItems) {
+        GridBagConstraints c = new GridBagConstraints();
+        c.gridy = row;
+        c.anchor = topAligned ? GridBagConstraints.NORTHWEST : GridBagConstraints.WEST;
+        c.insets = new Insets(5, 6, 5, 12);
+
+        c.gridx = 0;
+        form.add(new JLabel(label), c);
 
         c.gridx = 1;
-        c.weightx = 1;
-        JPanel valuePanel = new JPanel(new FlowLayout(FlowLayout.LEFT, 5, 0));
-        for (JComponent component : components) valuePanel.add(component);
-        panel.add(valuePanel, c);
+        form.add(field, c);
+
+        for (JComponent item : titlePageItems) {
+            titlePageFields.add(item);
+        }
     }
 
-    public int getPageWidth() {
-        return ((Number) pageWidth.getValue()).intValue();
+    private static JPanel flow(JComponent... components) {
+        JPanel panel = new JPanel(new FlowLayout(FlowLayout.LEFT, 5, 0));
+        panel.setOpaque(false);
+        for (JComponent component : components) {
+            panel.add(component);
+        }
+        return panel;
     }
 
-    public String getPageUnit() {
-        return (String) pageUnit.getSelectedItem();
-    }
+    /** Panel, das im ScrollPane immer die Breite des sichtbaren Bereichs übernimmt. */
+    private static final class TrackingPanel extends JPanel implements Scrollable {
 
-    public String getPageBreakMode() {
-        return (String) pageBreakMode.getSelectedItem();
-    }
+        TrackingPanel(LayoutManager layout) {
+            super(layout);
+        }
 
-    public boolean isCoverPageEnabled() {
-        return coverPage.isSelected();
-    }
+        @Override public Dimension getPreferredScrollableViewportSize() { return getPreferredSize(); }
 
-    public boolean isPageNumbersEnabled() {
-        return showPageNumbers.isSelected();
+        @Override public int getScrollableUnitIncrement(Rectangle visible, int orientation, int direction) {
+            return 16;
+        }
+
+        @Override public int getScrollableBlockIncrement(Rectangle visible, int orientation, int direction) {
+            return (orientation == SwingConstants.VERTICAL ? visible.height : visible.width) * 9 / 10;
+        }
+
+        @Override public boolean getScrollableTracksViewportWidth()  { return true; }
+
+        @Override public boolean getScrollableTracksViewportHeight() { return false; }
     }
 }

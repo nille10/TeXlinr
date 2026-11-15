@@ -3,6 +3,7 @@ package model;
 import controller.OutlineController;
 import view.LatexExportDialog;
 import view.CFileChooser;
+import model.image.ImageLibrary;
 
 import javax.swing.*;
 import javax.swing.filechooser.FileNameExtensionFilter;
@@ -33,17 +34,24 @@ public class LATEXParser {
     private final OutlineController outlineController;
     private final JFrame mainWindow;
     private final TreeModel treeModel;
+    private final ImageLibrary imageLibrary;
+
+    /** Löst {@code \fig:label}-Kürzel auf; wird bei jedem Export neu erzeugt. */
+    private FigureReferenceExpander figures;
 
     /**
      * Erstellt einen neunen {@code LATEXParser}.
      * @param outlineController der Controller für den Zugriff auf die Outline-Daten
      * @param mainWindow das Hauptfenster der Anwendung
      * @param treeModel das TreeModel des JTrees
+     * @param imageLibrary der Bilderordner, aus dem Abbildungen eingefügt werden
      */
-    public LATEXParser(OutlineController outlineController, JFrame mainWindow, TreeModel treeModel) {
+    public LATEXParser(OutlineController outlineController, JFrame mainWindow, TreeModel treeModel,
+                       ImageLibrary imageLibrary) {
         this.outlineController = outlineController;
         this.mainWindow = mainWindow;
         this.treeModel = treeModel;
+        this.imageLibrary = imageLibrary;
     }
 
     /**
@@ -87,6 +95,10 @@ public class LATEXParser {
      *
      * <p>
      *   Fehlende Verzeichnisse werden angelegt, eine vorhandene Datei wird überschrieben.
+     *   Der Bilderordner wird vorher neu eingelesen und nach {@code <Zielverzeichnis>/img/}
+     *   kopiert, damit {@code \includegraphics{img/...}} die Bilder findet. Kürzel wie
+     *   {@code \fig:board} in den Notizen werden durch die {@code figure}-Umgebung des
+     *   Bildes mit diesem Label ersetzt (siehe {@link FigureReferenceExpander}).
      *   Logos der Titelseite werden nur eingebunden, wenn sie relativ zum Zielverzeichnis
      *   existieren (siehe {@link #includeGraphicIfPresent(Path, String, String)}), damit
      *   das Dokument auch ohne diese Dateien kompiliert.
@@ -112,6 +124,15 @@ public class LATEXParser {
         if (directory != null) {
             Files.createDirectories(directory);
         }
+
+        // Auch von außen in img/ kopierte Bilder berücksichtigen. Die Bilder müssen vor dem
+        // Erzeugen des Dokuments im Zielordner liegen, weil Logos nur eingebunden werden,
+        // wenn sie dort existieren.
+        imageLibrary.refresh();
+        if (directory != null) {
+            imageLibrary.copyImagesTo(directory);
+        }
+        figures = new FigureReferenceExpander(imageLibrary);
 
         String body = toLatexString((OutlineNode) treeModel.getRoot());
         String fullDocument = buildFullLatexDocument(
@@ -154,7 +175,7 @@ public class LATEXParser {
             sb.append("\\subsubsection{").append(node.getTitle()).append("}\n");
 
         if (!node.getContent().isEmpty() && !node.getContent().isBlank())
-            sb.append(node.getContent()).append("\n");
+            sb.append(figures.expand(node.getContent())).append("\n");
         sb.append("\n");
 
         for (int i = 0; i < node.getChildCount(); i++) {
@@ -222,6 +243,7 @@ public class LATEXParser {
 
         tex.append("\\documentclass{article}\n");
         tex.append("\\usepackage{graphicx} % Required for inserting images\n");
+        tex.append("\\usepackage{float} % Platzierung [H] für Abbildungen\n");
         tex.append("\\title{").append(escapeLatex(rootTitle)).append("}\n");
         tex.append("\\author{EINFÜGEN}\n");
         tex.append("\\date{").append(heute).append("}\n\n");
@@ -274,7 +296,7 @@ public class LATEXParser {
         tex.append("\t\t\t\\vfill\n");
         tex.append("\t\t\t\\centering\n");
         tex.append("\t\t\t\\vspace{12.0cm}\n");
-        tex.append("\t\t\t\\includegraphics[width=\\paperwidth]{img/hsel-welle-grey}%\n");
+        tex.append("\t\t\t\\includegraphics[width=\\paperwidth]{logo/hsel-welle-grey}%\n");
         tex.append("\t\t\t\\vfill\n");
         tex.append("}}}\n\n");
 

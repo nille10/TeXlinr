@@ -226,11 +226,7 @@ public class MainWindow extends JFrame {
      * @throws IOException wenn die Datei nicht geschrieben werden konnte
      */
     private void exportLatex(LatexExportMode mode, LatexMetadata metadata, Path texFile) throws IOException {
-        // Bilder aus img/ (auch von außen hineinkopierte) in den Build-Ordner legen,
-        // damit \includegraphics{img/...} sie findet.
-        imageLibrary.refresh();
-        imageLibrary.copyImagesTo(texFile.toAbsolutePath().getParent());
-
+        // Der Export liest img/ neu ein und kopiert die Bilder selbst in den Zielordner.
         fileController.exportLatexTo(mode, metadata, texFile);
     }
 

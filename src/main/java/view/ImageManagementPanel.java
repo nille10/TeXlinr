@@ -257,7 +257,7 @@ public class ImageManagementPanel extends JPanel {
 
     // ── Einlesen und Auswahl ─────────────────────────────────────────────────
 
-    private void refresh(String selectName) {
+    public void refresh(String selectName) {
         List<ImageEntry> fresh;
         try {
             fresh = library.refresh();
