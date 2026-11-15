@@ -6,6 +6,9 @@ import org.w3c.dom.Element;
 import org.w3c.dom.Node;
 import org.w3c.dom.NodeList;
 import model.columns.ColumnType;
+import model.source.SourceEntry;
+import model.source.SourceField;
+import model.source.SourceType;
 
 import javax.swing.tree.DefaultTreeModel;
 import javax.xml.parsers.DocumentBuilder;
@@ -72,6 +75,7 @@ public class XMLParser {
         outlineController.cancelActiveEditing();
 
         outlineController.setLatexSettings(parseFormalities(rootElement));
+        outlineController.setSources(parseSources(rootElement));
 
         if (headElement != null) {
             rebuildColumns(headElement);
@@ -102,6 +106,7 @@ public class XMLParser {
 
         appendHeader(doc, rootElement);
         appendFormalities(doc, rootElement);
+        appendSources(doc, rootElement);
 
         OutlineNode rootNode = (OutlineNode) treeModel.getRoot();
         appendNode(doc, rootElement, rootNode);
@@ -199,6 +204,68 @@ public class XMLParser {
         }
 
         rootElement.appendChild(formalities);
+    }
+
+    /**
+     * Schreibt die Quellen des Literaturverzeichnisses als Element {@code sources} in das Dokument.
+     *
+     * <p>Jede Quelle ist ein Element {@code source} mit den Attributen {@code key}, {@code type} und
+     * {@code corporate}; ihre nicht leeren Felder stehen als {@code field name="..."}.</p>
+     *
+     * @param doc         das Ziel-XML-Dokument
+     * @param rootElement das Wurzelelement des Dokuments
+     */
+    private void appendSources(Document doc, Element rootElement) {
+        Element sources = doc.createElement("sources");
+        for (SourceEntry entry : outlineController.getSources()) {
+            Element source = doc.createElement("source");
+            source.setAttribute("key", entry.getKey());
+            source.setAttribute("type", entry.getType().name());
+            source.setAttribute("corporate", String.valueOf(entry.isCorporateAuthor()));
+            for (SourceField field : SourceField.values()) {
+                String value = entry.get(field);
+                if (!value.isEmpty()) {
+                    Element fieldElement = doc.createElement("field");
+                    fieldElement.setAttribute("name", field.name());
+                    fieldElement.setTextContent(value);
+                    source.appendChild(fieldElement);
+                }
+            }
+            sources.appendChild(source);
+        }
+        rootElement.appendChild(sources);
+    }
+
+    /**
+     * Liest die Quellen aus dem Dokument. Fehlt das Element {@code sources} (ältere Dateien),
+     * gibt es keine Quellen.
+     *
+     * @param rootElement das Wurzelelement des Dokuments
+     * @return die gelesenen Quellen, nie {@code null}
+     */
+    private List<SourceEntry> parseSources(Element rootElement) {
+        List<SourceEntry> result = new ArrayList<>();
+        NodeList found = rootElement.getElementsByTagName("sources");
+        if (found.getLength() == 0) {
+            return result;
+        }
+        NodeList sources = ((Element) found.item(0)).getElementsByTagName("source");
+        for (int i = 0; i < sources.getLength(); i++) {
+            Element source = (Element) sources.item(i);
+            SourceEntry entry = new SourceEntry(SourceType.fromName(source.getAttribute("type"), SourceType.MISC));
+            entry.setKey(source.getAttribute("key"));
+            entry.setCorporateAuthor(Boolean.parseBoolean(source.getAttribute("corporate")));
+            NodeList fields = source.getElementsByTagName("field");
+            for (int j = 0; j < fields.getLength(); j++) {
+                Element fieldElement = (Element) fields.item(j);
+                SourceField field = SourceField.fromName(fieldElement.getAttribute("name"));
+                if (field != null) {
+                    entry.set(field, fieldElement.getTextContent());
+                }
+            }
+            result.add(entry);
+        }
+        return result;
     }
 
     private void appendTextElement(Document doc, Element parent, String tagName, String text) {

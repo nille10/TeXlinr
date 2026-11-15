@@ -2,12 +2,15 @@ package controller;
 
 import model.LatexSettings;
 import model.OutlineNode;
+import model.source.BibtexWriter;
+import model.source.SourceEntry;
 import model.columns.Column;
 import model.columns.ColumnType;
 import view.FormalitiesPanel;
 import view.MainWindow;
 import view.TextWindow;
 import view.OutlinePanel;
+import view.SourcePanel;
 import view.columns.ColumnHeader;
 
 import javax.swing.*;
@@ -39,6 +42,9 @@ public class OutlineController {
 
     /** Die Oberfläche der LaTeX-Formalitäten; wird nach dem Erzeugen über {@link #setFormalitiesPanel(FormalitiesPanel)} gesetzt. */
     private FormalitiesPanel formalitiesPanel;
+
+    /** Die Oberfläche der Quellen (Literaturverzeichnis); wird über {@link #setSourcePanel(SourcePanel)} gesetzt. */
+    private SourcePanel sourcePanel;
 
     private boolean isSelected = true;
 
@@ -811,10 +817,56 @@ public class OutlineController {
     }
 
     /**
-     * Setzt die LaTeX-Einstellungen auf die Standardwerte zurück, z. B. bei einem neuen Dokument.
+     * Setzt die LaTeX-Einstellungen <em>und die Quellen</em> auf den Anfangszustand zurück,
+     * z. B. bei einem neuen Dokument.
      */
     public void resetLatexSettings() {
         setLatexSettings(LatexSettings.defaults());
+        setSources(List.of());
+    }
+
+    // ── Quellen (Literaturverzeichnis) ───────────────────────────────────────
+
+    /**
+     * Verbindet den Controller mit der Oberfläche der Quellen. Jede Änderung des Benutzers
+     * markiert das Projekt als ungespeichert ({@link #markDirty()}).
+     *
+     * @param panel das {@link SourcePanel}
+     */
+    public void setSourcePanel(SourcePanel panel) {
+        this.sourcePanel = panel;
+        panel.addChangeListener(this::markDirty);
+    }
+
+    /**
+     * Liefert Kopien aller Quellen aus dem {@link SourcePanel}. Wird von den Parsern zum Speichern
+     * und vom Export verwendet.
+     *
+     * @return die Quellen; leer, solange kein Panel verbunden ist
+     */
+    public List<SourceEntry> getSources() {
+        return sourcePanel != null ? sourcePanel.getEntries() : List.of();
+    }
+
+    /**
+     * Ersetzt die Quellen im {@link SourcePanel}, z. B. beim Öffnen eines Projekts.
+     * Markiert das Projekt nicht als geändert.
+     *
+     * @param sources die anzuzeigenden Quellen
+     */
+    public void setSources(List<SourceEntry> sources) {
+        if (sourcePanel != null) {
+            sourcePanel.setEntries(sources);
+        }
+    }
+
+    /**
+     * Liefert den Inhalt der {@code .bib}-Datei zum aktuellen Stand der Quellen.
+     *
+     * @return der BibTeX-Text; leer, wenn es keine Quellen gibt
+     */
+    public String getBibtex() {
+        return BibtexWriter.write(getSources());
     }
 
     /**

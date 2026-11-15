@@ -21,19 +21,20 @@ import java.util.function.Consumer;
  * Hell-/Dunkel-Umschalter und jeder Änderung der Akzentfarben, ohne dass
  * nach einem Theme-Wechsel etwas neu gesetzt werden muss.</p>
  *
- * <p>Die Bereiche lassen sich per Mausklick oder mit Strg+1 bis Strg+3
- * (unter macOS Cmd+1 bis Cmd+3) auswählen.</p>
+ * <p>Die Bereiche lassen sich per Mausklick oder mit Strg+1 bis Strg+4
+ * (unter macOS Cmd+1 bis Cmd+4) auswählen.</p>
  */
 public class NavigationSidebar extends JPanel {
 
     public static final String TREE = "tree";
     public static final String IMAGES = "images";
     public static final String FORMALITIES = "formalities";
+    public static final String SOURCES = "sources";
 
     private static final int SIDEBAR_WIDTH = 96;
     private static final int BUTTON_WIDTH = 82;
     private static final int BUTTON_HEIGHT = 68;
-    private static final int[] SHORTCUT_KEYS = {KeyEvent.VK_1, KeyEvent.VK_2, KeyEvent.VK_3};
+    private static final int[] SHORTCUT_KEYS = {KeyEvent.VK_1, KeyEvent.VK_2, KeyEvent.VK_3, KeyEvent.VK_4};
 
     private final Map<String, SidebarButton> buttons = new LinkedHashMap<>();
     private final Consumer<String> onViewSelected;
@@ -53,6 +54,8 @@ public class NavigationSidebar extends JPanel {
         addItem(IMAGES, "▧", "Bilder");
         add(Box.createVerticalStrut(8));
         addItem(FORMALITIES, "☷", "Formalitäten");
+        add(Box.createVerticalStrut(8));
+        addItem(SOURCES, "❝", "Quellen");
         add(Box.createVerticalGlue());
 
         selectView(TREE);

@@ -4,14 +4,19 @@ import controller.OutlineController;
 import view.CFileChooser;
 import model.image.ImageEntry;
 import model.image.ImageLibrary;
+import model.source.BibtexWriter;
+import model.source.CitationExpander;
+import model.source.SourceEntry;
 
 import javax.swing.*;
 import javax.swing.filechooser.FileNameExtensionFilter;
 import javax.swing.tree.TreeModel;
 import java.io.File;
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.List;
 import java.util.Locale;
 import java.util.Objects;
 
@@ -39,6 +44,15 @@ public class LATEXParser {
 
     /** Löst {@code \fig:label}-Kürzel auf; wird bei jedem Export neu erzeugt. */
     private FigureReferenceExpander figures;
+
+    /** Löst {@code \cite:key}-Kürzel auf; wird bei jedem Export neu erzeugt. */
+    private CitationExpander citations;
+
+    /** Die brauchbaren Quellen des laufenden Exports (siehe {@link BibtexWriter#usable}). */
+    private List<SourceEntry> sources = List.of();
+
+    /** Name der BibTeX-Datei, die neben der {@code .tex}-Datei angelegt wird. */
+    private static final String BIB_FILE = "references";
 
     /** Die Formalitäten des laufenden Exports; wird zu Beginn von {@link #exportTo(Path)} gelesen. */
     private LatexSettings settings;
@@ -114,6 +128,14 @@ public class LATEXParser {
         }
         figures = new FigureReferenceExpander(imageLibrary);
 
+        // Quellen: Kürzel \cite:key auflösen und die .bib-Datei neben die .tex-Datei schreiben
+        sources = BibtexWriter.usable(outlineController.getSources());
+        citations = new CitationExpander(sources);
+        if (!sources.isEmpty() && directory != null) {
+            Files.writeString(directory.resolve(BIB_FILE + ".bib"), BibtexWriter.write(sources),
+                    StandardCharsets.UTF_8);
+        }
+
         String body = toLatexString((OutlineNode) treeModel.getRoot());
         String fullDocument = buildFullLatexDocument(body);
 
@@ -160,7 +182,7 @@ public class LATEXParser {
             sb.append("\\subsubsection{").append(node.getTitle()).append("}\n");
 
         if (!node.getContent().isEmpty() && !node.getContent().isBlank())
-            sb.append(figures.expand(node.getContent())).append("\n");
+            sb.append(figures.expand(citations.expand(node.getContent()))).append("\n");
         sb.append("\n");
 
         for (int i = 0; i < node.getChildCount(); i++) {
@@ -233,6 +255,9 @@ public class LATEXParser {
         tex.append(isA4() ? "\\documentclass[a4paper]{article}\n" : "\\documentclass{article}\n");
         tex.append("\\usepackage{graphicx} % Required for inserting images\n");
         tex.append("\\usepackage{float} % Platzierung [H] für Abbildungen\n");
+        if (!sources.isEmpty()) {
+            tex.append("\\usepackage{url} % \\url im Literaturverzeichnis\n");
+        }
         tex.append("\\usepackage{listings} % Codeblöcke (lstlisting)\n");
         tex.append("\\usepackage{amsmath}\n");
         tex.append("\\usepackage{amssymb}\n");
@@ -250,6 +275,7 @@ public class LATEXParser {
         tex.append("\\maketitle\n\n");
 
         tex.append(body);
+        tex.append(buildBibliography());
 
         tex.append("\\end{document}\n");
 
@@ -428,6 +454,7 @@ public class LATEXParser {
         }
 
         tex.append(body);
+        tex.append(buildBibliography());
 
         tex.append("\\end{document}\n");
 
@@ -516,6 +543,21 @@ public class LATEXParser {
             }
         }
         return "\\mbox{}";
+    }
+
+    /**
+     * Das Literaturverzeichnis am Ende des Dokuments, klassisches BibTeX. Gibt es keine Quellen, bleibt es leer.
+     * Aufgeführt werden die Quellen, die im Text mit {@code \cite:key} zitiert wurden.
+     */
+    private String buildBibliography() {
+        if (sources.isEmpty()) {
+            return "";
+        }
+        return "\n"
+                + "\\ifdefined\\phantomsection\\phantomsection\\fi\n"
+                + "\\addcontentsline{toc}{section}{\\refname}\n"
+                + "\\bibliographystyle{plain}\n"
+                + "\\bibliography{" + BIB_FILE + "}\n\n";
     }
 
     /** Seitenbreite der Formalitäten in Millimetern. */

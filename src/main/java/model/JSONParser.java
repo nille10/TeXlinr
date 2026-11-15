@@ -3,6 +3,9 @@ package model;
 import controller.OutlineController;
 import model.columns.Column;
 import model.columns.ColumnType;
+import model.source.SourceEntry;
+import model.source.SourceField;
+import model.source.SourceType;
 
 import javax.swing.tree.DefaultTreeModel;
 import java.io.File;
@@ -69,6 +72,7 @@ public class JSONParser {
         }
         jsonHeader.append("  ],\n");
         jsonHeader.append(jsonFormalities());
+        jsonHeader.append(jsonSources());
         return jsonHeader;
     }
 
@@ -98,6 +102,40 @@ public class JSONParser {
         sb.append("    \"autoren\" : ").append(jsonStringArray(metadata.autoren())).append(",\n");
         sb.append("    \"betreuer\" : ").append(jsonStringArray(metadata.betreuer())).append("\n");
         sb.append("  },\n");
+        return sb;
+    }
+
+    /**
+     * Erzeugt das JSON-Array {@code "sources"} mit den Quellen des Literaturverzeichnisses.
+     * Es steht wie die Formalitäten vor dem Wurzelknoten.
+     *
+     * @return ein {@code StringBuilder} mit dem Array, abgeschlossen durch {@code ",\n"}
+     */
+    private StringBuilder jsonSources() {
+        List<SourceEntry> sources = outlineController.getSources();
+
+        StringBuilder sb = new StringBuilder();
+        sb.append("  \"sources\" : [");
+        for (int i = 0; i < sources.size(); i++) {
+            SourceEntry entry = sources.get(i);
+            sb.append(i == 0 ? "\n" : ",\n");
+            sb.append("    {\n");
+            sb.append("      \"key\" : \"").append(escapeJson(entry.getKey())).append("\",\n");
+            sb.append("      \"type\" : \"").append(entry.getType().name()).append("\",\n");
+            sb.append("      \"corporate\" : ").append(entry.isCorporateAuthor()).append(",\n");
+            sb.append("      \"fields\" : {");
+            boolean first = true;
+            for (SourceField field : SourceField.values()) {
+                String value = entry.get(field);
+                if (value.isEmpty()) continue;
+                sb.append(first ? "\n" : ",\n");
+                sb.append("        \"").append(field.name()).append("\" : \"").append(escapeJson(value)).append('"');
+                first = false;
+            }
+            sb.append(first ? "}\n" : "\n      }\n");
+            sb.append("    }");
+        }
+        sb.append(sources.isEmpty() ? "],\n" : "\n  ],\n");
         return sb;
     }
 
@@ -234,6 +272,7 @@ public class JSONParser {
 
         // Ältere Dateien haben keine Formalitäten: Standardwerte, damit nichts vom vorigen Projekt übrig bleibt
         outlineController.setLatexSettings(LatexSettings.defaults());
+        outlineController.setSources(List.of());
 
         skipWhitespace(json);
         expectChar(json, '{');
@@ -261,6 +300,9 @@ public class JSONParser {
                     break;
                 case "formalities":
                     outlineController.setLatexSettings(parseFormalities(json));
+                    break;
+                case "sources":
+                    outlineController.setSources(parseSources(json));
                     break;
                 case "title":
                 case "content":
@@ -379,6 +421,93 @@ public class JSONParser {
                 breakMode,
                 pageNumbers,
                 logoLabel);
+    }
+
+    /**
+     * Liest das JSON-Array {@code "sources"} ab der aktuellen Position.
+     *
+     * <p>Unbekannte Schlüssel und unbekannte Felder werden übersprungen.</p>
+     *
+     * @param json der zu parsende JSON-String
+     * @return die gelesenen Quellen
+     */
+    private List<SourceEntry> parseSources(String json) {
+        List<SourceEntry> result = new ArrayList<>();
+
+        skipWhitespace(json);
+        expectChar(json, '[');
+
+        while (pos < json.length()) {
+            skipWhitespace(json);
+            if (json.charAt(pos) == ']') {
+                pos++;
+                break;
+            }
+
+            expectChar(json, '{');
+            SourceEntry entry = new SourceEntry(SourceType.MISC);
+
+            while (pos < json.length()) {
+                skipWhitespace(json);
+                if (json.charAt(pos) == '}') {
+                    pos++;
+                    break;
+                }
+
+                String key = parseString(json);
+                skipWhitespace(json);
+                expectChar(json, ':');
+
+                switch (key) {
+                    case "key" -> entry.setKey(parseString(json));
+                    case "type" -> entry.setType(SourceType.fromName(parseString(json), SourceType.MISC));
+                    case "corporate" -> entry.setCorporateAuthor(Boolean.parseBoolean(parseLiteral(json)));
+                    case "fields" -> parseSourceFields(json, entry);
+                    default -> skipValue(json);
+                }
+
+                skipWhitespace(json);
+                if (pos < json.length() && json.charAt(pos) == ',') {
+                    pos++;
+                }
+            }
+            result.add(entry);
+
+            skipWhitespace(json);
+            if (pos < json.length() && json.charAt(pos) == ',') {
+                pos++;
+            }
+        }
+        return result;
+    }
+
+    /** Liest das Objekt {@code "fields"} einer Quelle (Feldname und Text) in den Eintrag. */
+    private void parseSourceFields(String json, SourceEntry entry) {
+        skipWhitespace(json);
+        expectChar(json, '{');
+
+        while (pos < json.length()) {
+            skipWhitespace(json);
+            if (json.charAt(pos) == '}') {
+                pos++;
+                break;
+            }
+
+            String name = parseString(json);
+            skipWhitespace(json);
+            expectChar(json, ':');
+            String value = parseString(json);
+
+            SourceField field = SourceField.fromName(name);
+            if (field != null) {
+                entry.set(field, value);
+            }
+
+            skipWhitespace(json);
+            if (pos < json.length() && json.charAt(pos) == ',') {
+                pos++;
+            }
+        }
     }
 
     /**

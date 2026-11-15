@@ -31,7 +31,7 @@ import java.util.Comparator;
  * MainWindow – Hauptfenster des LaTeX-Outliners.
  *
  * <p>Baut das komplette Fenster zusammen: Menüleiste, Toolbar, linke Navigation,
- * die umschaltbaren Arbeitsbereiche (Gliederung, Abbildungen, Formalia), die
+ * die umschaltbaren Arbeitsbereiche (Gliederung, Abbildungen, Formalia, Quellen), die
  * dauerhaft sichtbare PDF-Vorschau sowie die Status-Leiste. Erzeugt dabei alle
  * Controller ({@link OutlineController}, {@link FileController},
  * {@link EditController}) und verdrahtet deren Actions mit Menü, Toolbar und den
@@ -152,11 +152,15 @@ public class MainWindow extends JFrame {
         FormalitiesPanel formalitiesPanel = new FormalitiesPanel(imageLibrary);
         // Speichern/Laden und die Dirty-Markierung der Formalitäten laufen über den OutlineController
         outlineController.setFormalitiesPanel(formalitiesPanel);
+        // Quellen (Literaturverzeichnis): ebenfalls über den OutlineController gespeichert und geladen
+        SourcePanel sourcePanel = new SourcePanel();
+        outlineController.setSourcePanel(sourcePanel);
 
         WorkspacePanel workspacePanel = new WorkspacePanel(
                 treeView,
                 imageManagementPanel,
-                formalitiesPanel
+                formalitiesPanel,
+                sourcePanel
         );
 
         // Linke Navigation
