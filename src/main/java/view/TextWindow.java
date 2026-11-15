@@ -29,6 +29,9 @@ public class TextWindow extends JPanel {
   /** Callback, der nach jeder Inhaltsänderung des aktuellen Knotens aufgerufen wird. */
   private Runnable onContentChanged;
 
+  /** Vervollständigungshilfe für {@code \fig:} und {@code \cite:} im Textfeld. */
+  private final TextCompletion completion;
+
   /**
    * Baut den Notizbereich auf: Kopfzeile mit Titel-Label und darunter ein
    * scrollbares, zeilenumbrechendes Textfeld, das zunächst deaktiviert ist, da
@@ -60,6 +63,8 @@ public class TextWindow extends JPanel {
       public void changedUpdate(javax.swing.event.DocumentEvent e) { saveToNode(); }
     });
 
+    completion = new TextCompletion(textArea);
+
     JScrollPane scrollPane = new JScrollPane(textArea);
     scrollPane.setBorder(BorderFactory.createEmptyBorder());
     add(scrollPane, BorderLayout.CENTER);
@@ -78,6 +83,27 @@ public class TextWindow extends JPanel {
    */
   public void setOnContentChanged(Runnable callback) {
     this.onContentChanged = callback;
+  }
+
+  /**
+   * Liefert das Textfeld des Notizbereichs, z. B. um Suchtreffer darin zu markieren.
+   *
+   * @return das {@link JTextArea}
+   */
+  public JTextArea getTextArea() {
+    return textArea;
+  }
+
+  /**
+   * Legt fest, woher die Vorschläge der Vervollständigung kommen (siehe {@link TextCompletion}).
+   * Die Anbieter werden bei jedem Öffnen der Auswahl neu aufgerufen.
+   *
+   * @param figures   Labels der Abbildungen
+   * @param citations Zitierschlüssel der Quellen
+   */
+  public void setCompletionSources(java.util.function.Supplier<java.util.List<TextCompletion.Item>> figures,
+                                   java.util.function.Supplier<java.util.List<TextCompletion.Item>> citations) {
+    completion.setSources(figures, citations);
   }
 
   /**

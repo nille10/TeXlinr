@@ -12,6 +12,8 @@ import action.actions.outline.*;
 import controller.*;
 import model.image.ImageLibrary;
 import model.OutlineNode;
+import model.source.BibtexWriter;
+import model.source.SourceField;
 import service.LatexCompiler;
 
 import javax.swing.*;
@@ -102,7 +104,7 @@ public class MainWindow extends JFrame {
     public MainWindow() {
         super(BASE_TITLE);
         setDefaultCloseOperation(JFrame.DO_NOTHING_ON_CLOSE);
-        setSize(1200, 720);
+        setSize(1400, 720);
         setIconImage(loadLogo());
         setMinimumSize(new Dimension(600, 400));
         setLocationRelativeTo(null);
@@ -156,6 +158,18 @@ public class MainWindow extends JFrame {
         SourcePanel sourcePanel = new SourcePanel();
         outlineController.setSourcePanel(sourcePanel);
 
+        // Vervollständigung im Textfeld: \fig:label und \cite:key
+        textWindow.setCompletionSources(
+                () -> imageLibrary.getEntries().stream()
+                        .filter(entry -> entry.getLabel().contains(":"))
+                        .map(entry -> new TextCompletion.Item(entry.getLabel(),
+                                entry.getCaption().isBlank() ? entry.getFileName() : entry.getCaption()))
+                        .toList(),
+                () -> BibtexWriter.usable(outlineController.getSources()).stream()
+                        .map(source -> new TextCompletion.Item(source.getKey(), describe(source.get(SourceField.TITLE),
+                                source.get(SourceField.YEAR))))
+                        .toList());
+
         WorkspacePanel workspacePanel = new WorkspacePanel(
                 treeView,
                 imageManagementPanel,
@@ -166,6 +180,13 @@ public class MainWindow extends JFrame {
         // Linke Navigation
         NavigationSidebar navigationSidebar =
                 new NavigationSidebar(workspacePanel::showView);
+
+        // Suche im Inhalt aller Notizen: Shift+Shift
+        SearchOverlay searchOverlay = new SearchOverlay(this, outlineController, textWindow, () -> {
+            workspacePanel.showView(NavigationSidebar.TREE);
+            navigationSidebar.selectView(NavigationSidebar.TREE);
+        });
+        searchOverlay.install();
 
         // Hauptlayout
         getContentPane().setLayout(new BorderLayout());
@@ -216,6 +237,12 @@ public class MainWindow extends JFrame {
 
         fileController.tryImportLastEditedFile();
         outlineController.saved();
+    }
+
+    /** Kurzbeschreibung einer Quelle für die Vervollständigung: Titel und Jahr. */
+    private static String describe(String title, String year) {
+        String t = title.strip().replace('\n', ' ');
+        return year.isBlank() ? t : t + " (" + year.strip() + ")";
     }
 
     /**
