@@ -69,6 +69,8 @@ public class FileController {
             outlineController.cancelActiveEditing();
             outlineController.deleteAllColumns();
 
+            outlineController.resetLatexSettings();
+
             OutlineNode root = outlineController.getRootNode();
 
             root.removeAllChildren();

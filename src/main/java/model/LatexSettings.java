@@ -64,6 +64,24 @@ public record LatexSettings(
                 true);
     }
 
+    /**
+     * Wandelt einen gespeicherten Namen in eine Dokumentvorlage um.
+     *
+     * @param name der Name aus {@link LatexExportMode#name()}, darf {@code null} oder ungültig sein
+     * @return die Vorlage; {@link LatexExportMode#STANDARD} bei {@code null}, unbekanntem Namen oder {@code CANCELLED}
+     */
+    public static LatexExportMode modeFromName(String name) {
+        if (name == null) {
+            return LatexExportMode.STANDARD;
+        }
+        try {
+            LatexExportMode mode = LatexExportMode.valueOf(name.trim());
+            return mode == LatexExportMode.CANCELLED ? LatexExportMode.STANDARD : mode;
+        } catch (IllegalArgumentException e) {
+            return LatexExportMode.STANDARD;
+        }
+    }
+
     private static LatexMetadata defaultMetadata() {
         return new LatexMetadata(
                 "Technik",

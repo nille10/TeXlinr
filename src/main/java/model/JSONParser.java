@@ -51,7 +51,9 @@ public class JSONParser {
     /**
      * Generiert einen JSON Header basierend auf den Daten im {@link OutlineController}.
      * <p>
-     *   Der Header beinhaltet die Überschrift des Outliners und die Überschriften der Spalten.
+     *   Der Header beinhaltet die Überschrift des Outliners, die Überschriften der Spalten und
+     *   die LaTeX-Formalitäten (siehe {@link #jsonFormalities()}). Die Formalitäten stehen bewusst
+     *   vor dem Wurzelknoten, weil der Import nach dem Wurzelknoten endet.
      * </p>
      * @return ein {@code StringBuilder} mit dem Inhalt des Headers in JSON format
      */
@@ -66,7 +68,53 @@ public class JSONParser {
             jsonHeader.append(i < headers.size() - 1 ? ",\n" : "\n");
         }
         jsonHeader.append("  ],\n");
+        jsonHeader.append(jsonFormalities());
         return jsonHeader;
+    }
+
+    /**
+     * Erzeugt das JSON-Objekt {@code "formalities"} mit den LaTeX-Einstellungen (siehe {@link LatexSettings}).
+     *
+     * @return ein {@code StringBuilder} mit dem Objekt, abgeschlossen durch {@code ",\n"}
+     */
+    private StringBuilder jsonFormalities() {
+        LatexSettings settings = outlineController.getLatexSettings();
+        LatexMetadata metadata = settings.metadata();
+
+        StringBuilder sb = new StringBuilder();
+        sb.append("  \"formalities\" : {\n");
+        sb.append("    \"mode\" : \"").append(settings.mode().name()).append("\",\n");
+        sb.append("    \"coverPage\" : ").append(settings.coverPage()).append(",\n");
+        sb.append("    \"pageWidth\" : ").append(settings.pageWidth()).append(",\n");
+        sb.append("    \"pageUnit\" : \"").append(escapeJson(settings.pageUnit())).append("\",\n");
+        sb.append("    \"pageBreakMode\" : \"").append(settings.pageBreakMode().name()).append("\",\n");
+        sb.append("    \"showPageNumbers\" : ").append(settings.showPageNumbers()).append(",\n");
+        sb.append("    \"fachbereich\" : \"").append(escapeJson(metadata.fachbereich())).append("\",\n");
+        sb.append("    \"abteilung\" : \"").append(escapeJson(metadata.abteilung())).append("\",\n");
+        sb.append("    \"titel\" : \"").append(escapeJson(metadata.titel())).append("\",\n");
+        sb.append("    \"artDerArbeit\" : \"").append(escapeJson(metadata.artDerArbeit())).append("\",\n");
+        sb.append("    \"ort\" : \"").append(escapeJson(metadata.ort())).append("\",\n");
+        sb.append("    \"autoren\" : ").append(jsonStringArray(metadata.autoren())).append(",\n");
+        sb.append("    \"betreuer\" : ").append(jsonStringArray(metadata.betreuer())).append("\n");
+        sb.append("  },\n");
+        return sb;
+    }
+
+    /**
+     * Schreibt eine Liste von Texten als JSON-Array in einer Zeile, z. B. {@code ["a", "b"]}.
+     *
+     * @param values die Texte
+     * @return das JSON-Array
+     */
+    private String jsonStringArray(List<String> values) {
+        StringBuilder sb = new StringBuilder("[");
+        for (int i = 0; i < values.size(); i++) {
+            if (i > 0) {
+                sb.append(", ");
+            }
+            sb.append('"').append(escapeJson(values.get(i))).append('"');
+        }
+        return sb.append("]").toString();
     }
 
     /**
@@ -130,7 +178,7 @@ public class JSONParser {
 
     /**
      * Ersetzt bestimmte Zeichen wie Anführungszeichen, Backslashes und Zeilenumbrüche, damit diese in der JSON im richtigen Format gespeichert werden.
-     * Wird für alle Texte (Titel, Inhalt des Textfelds, Spaltentitel, Spaltenwerte) benötigt.
+     * Wird für alle Texte (Titel, Inhalt des Textfelds, Spaltentitel, Spaltenwerte, Formalitäten) benötigt.
      * @param input {@code String}
      * @return einen {@code String} der im JSON format ist
      */
@@ -170,6 +218,8 @@ public class JSONParser {
      * <p>
      *   Arbeitet sich durch die JSON Datei und fügt den Inhalt zu einer neuen {@link OutlineNode} hinzu, der Inhalt der Überschriften wird direkt eingefügt.
      *   Wenn die {@link OutlineNode} ungleich {@code null} ist wird der Inhalt des Outliners durch den Inhalt der neuen {@link OutlineNode} ersetzt.
+     *   Die LaTeX-Formalitäten werden auf die gespeicherten Werte gesetzt; enthält die Datei keine (ältere Dateien),
+     *   gelten die Standardwerte.
      * </p>
      * @param saveLocation die JSON-Datei die importiert werden soll
      * @throws Exception wenn die {@code saveLocation} nicht gelesen werden kann.
@@ -180,6 +230,9 @@ public class JSONParser {
         this.importedHeaderColumns.clear();
 
         outlineController.cancelActiveEditing();
+
+        // Ältere Dateien haben keine Formalitäten: Standardwerte, damit nichts vom vorigen Projekt übrig bleibt
+        outlineController.setLatexSettings(LatexSettings.defaults());
 
         skipWhitespace(json);
         expectChar(json, '{');
@@ -204,6 +257,9 @@ public class JSONParser {
                     break;
                 case "headerColumns":
                     parseHeaderColumns(json);
+                    break;
+                case "formalities":
+                    outlineController.setLatexSettings(parseFormalities(json));
                     break;
                 case "title":
                 case "content":
@@ -240,6 +296,130 @@ public class JSONParser {
     // =========================================================================
     // Hilfsmethoden für das Parsen der JSON-Struktur
     // =========================================================================
+
+    /**
+     * Liest das JSON-Objekt {@code "formalities"} ab der aktuellen Position und baut daraus {@link LatexSettings} auf.
+     *
+     * <p>Fehlende oder ungültige Einzelwerte behalten ihren Standardwert, unbekannte Schlüssel werden übersprungen.</p>
+     *
+     * @param json der zu parsende JSON-String
+     * @return die gelesenen Einstellungen
+     */
+    private LatexSettings parseFormalities(String json) {
+        LatexSettings defaults = LatexSettings.defaults();
+        LatexMetadata defaultMetadata = defaults.metadata();
+
+        LatexExportMode mode = defaults.mode();
+        boolean coverPage = defaults.coverPage();
+        int pageWidth = defaults.pageWidth();
+        String pageUnit = defaults.pageUnit();
+        PageBreakMode breakMode = defaults.pageBreakMode();
+        boolean pageNumbers = defaults.showPageNumbers();
+
+        String fachbereich = defaultMetadata.fachbereich();
+        String abteilung = defaultMetadata.abteilung();
+        String titel = defaultMetadata.titel();
+        String artDerArbeit = defaultMetadata.artDerArbeit();
+        String ort = defaultMetadata.ort();
+        List<String> autoren = defaultMetadata.autoren();
+        List<String> betreuer = defaultMetadata.betreuer();
+
+        skipWhitespace(json);
+        expectChar(json, '{');
+
+        while (pos < json.length()) {
+            skipWhitespace(json);
+            if (json.charAt(pos) == '}') {
+                pos++;
+                break;
+            }
+
+            String key = parseString(json);
+            skipWhitespace(json);
+            expectChar(json, ':');
+
+            switch (key) {
+                case "mode" -> mode = LatexSettings.modeFromName(parseString(json));
+                case "coverPage" -> coverPage = Boolean.parseBoolean(parseLiteral(json));
+                case "pageWidth" -> {
+                    try {
+                        pageWidth = Integer.parseInt(parseLiteral(json).trim());
+                    } catch (NumberFormatException ignored) {
+                        // Standardbreite bleibt
+                    }
+                }
+                case "pageUnit" -> pageUnit = parseString(json);
+                case "pageBreakMode" -> breakMode = PageBreakMode.fromName(parseString(json), breakMode);
+                case "showPageNumbers" -> pageNumbers = Boolean.parseBoolean(parseLiteral(json));
+                case "fachbereich" -> fachbereich = parseString(json);
+                case "abteilung" -> abteilung = parseString(json);
+                case "titel" -> titel = parseString(json);
+                case "artDerArbeit" -> artDerArbeit = parseString(json);
+                case "ort" -> ort = parseString(json);
+                case "autoren" -> autoren = parseStringArray(json);
+                case "betreuer" -> betreuer = parseStringArray(json);
+                default -> skipValue(json);
+            }
+
+            skipWhitespace(json);
+            if (pos < json.length() && json.charAt(pos) == ',') {
+                pos++;
+            }
+        }
+
+        return new LatexSettings(
+                mode,
+                coverPage,
+                new LatexMetadata(fachbereich, abteilung, titel, artDerArbeit, autoren, ort, betreuer),
+                pageWidth,
+                pageUnit,
+                breakMode,
+                pageNumbers);
+    }
+
+    /**
+     * Liest einen unquotierten JSON-Wert (Zahl oder Boolean) bis zum nächsten Trennzeichen.
+     *
+     * @param json der zu parsende JSON-String
+     * @return der Wert als Text, z. B. {@code "true"} oder {@code "210"}
+     */
+    private String parseLiteral(String json) {
+        skipWhitespace(json);
+        int start = pos;
+        while (pos < json.length() && ",}] \t\r\n".indexOf(json.charAt(pos)) == -1) {
+            pos++;
+        }
+        return json.substring(start, pos);
+    }
+
+    /**
+     * Liest ein JSON-Array aus Texten, z. B. {@code ["a", "b"]}.
+     *
+     * @param json der zu parsende JSON-String
+     * @return die Texte in der gespeicherten Reihenfolge
+     */
+    private List<String> parseStringArray(String json) {
+        List<String> values = new ArrayList<>();
+
+        skipWhitespace(json);
+        expectChar(json, '[');
+
+        while (pos < json.length()) {
+            skipWhitespace(json);
+            if (json.charAt(pos) == ']') {
+                pos++;
+                break;
+            }
+
+            values.add(parseString(json));
+
+            skipWhitespace(json);
+            if (pos < json.length() && json.charAt(pos) == ',') {
+                pos++;
+            }
+        }
+        return values;
+    }
 
     /**
      * Liest ein einzelnes JSON-Objekt ab der aktuellen Position und baut daraus ein {@link OutlineNode}-Objekt auf.

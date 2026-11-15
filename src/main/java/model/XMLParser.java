@@ -17,14 +17,16 @@ import javax.xml.transform.dom.DOMSource;
 import javax.xml.transform.stream.StreamResult;
 import java.io.File;
 import java.io.StringWriter;
+import java.util.ArrayList;
+import java.util.List;
 
 /**
  * Der {@code XMLParser} ist für das Importieren und Exportieren von Outlines im XML-Format zuständig.
  *
  * <p>
  *   Die Klasse nutzt die W3C-DOM-API, um XML-Dateien einzulesen oder eine Baumstruktur
- * ({@link DefaultTreeModel}) inklusive Metadaten und Spaltenkonfigurationen in ein XML-Dokument
- * zu serialisieren.
+ * ({@link DefaultTreeModel}) inklusive Metadaten, Spaltenkonfigurationen und den LaTeX-Formalitäten
+ * ({@link LatexSettings}) in ein XML-Dokument zu serialisieren.
  * </p>
  */
 public class XMLParser {
@@ -45,6 +47,8 @@ public class XMLParser {
      *
      * <p>
      * Laufende Editiervorgänge werden gestoppt und die struktur aus der XML-Datei wird im {@link OutlineController} wieder hergestellt.
+     * Die Formalitäten werden ebenfalls wiederhergestellt; enthält die Datei keine (ältere Dateien),
+     * werden die Standardwerte gesetzt, damit keine Einstellungen eines zuvor geöffneten Projekts erhalten bleiben.
      * </p>
      *
      * @param saveLocation die XML-Datei die importiert werden soll
@@ -67,6 +71,8 @@ public class XMLParser {
 
         outlineController.cancelActiveEditing();
 
+        outlineController.setLatexSettings(parseFormalities(rootElement));
+
         if (headElement != null) {
             rebuildColumns(headElement);
         }
@@ -79,7 +85,8 @@ public class XMLParser {
      * Wandelt den Inhalt des {@link OutlineController} in einen String in XML-Format um.
      * <p>
      * Erzeugt mit hilfe der W3C-DOM-API einen {@code String} im XML-Format,
-     * aufgeteilt in Header (siehe {@link #appendHeader(Document, Element)}) und Nodes (siehe {@link #appendNode(Document, Element, OutlineNode)}.
+     * aufgeteilt in Header (siehe {@link #appendHeader(Document, Element)}), Formalitäten
+     * (siehe {@link #appendFormalities(Document, Element)}) und Nodes (siehe {@link #appendNode(Document, Element, OutlineNode)}.
      * </p>
      * @param treeModel TreeModel mit dem Inhalt des Outliners
      * @return {@code String} im XML-Format
@@ -94,6 +101,7 @@ public class XMLParser {
         doc.appendChild(rootElement);
 
         appendHeader(doc, rootElement);
+        appendFormalities(doc, rootElement);
 
         OutlineNode rootNode = (OutlineNode) treeModel.getRoot();
         appendNode(doc, rootElement, rootNode);
@@ -156,6 +164,116 @@ public class XMLParser {
     }
 
     /**
+     * Schreibt die LaTeX-Formalitäten (siehe {@link LatexSettings}) als Element {@code formalities} in das Dokument.
+     *
+     * <p>Einfache Werte (Vorlage, Seitenbreite, ...) stehen als Attribute, Texte als Kindelemente
+     * ({@code fachbereich}, {@code abteilung}, {@code titel}, {@code artDerArbeit}, {@code ort}),
+     * Autoren und Betreuer als wiederholte Elemente {@code autor} und {@code betreuer}.</p>
+     *
+     * @param doc         das Ziel-XML-Dokument
+     * @param rootElement das Wurzelelement des Dokuments
+     */
+    private void appendFormalities(Document doc, Element rootElement) {
+        LatexSettings settings = outlineController.getLatexSettings();
+        LatexMetadata metadata = settings.metadata();
+
+        Element formalities = doc.createElement("formalities");
+        formalities.setAttribute("mode", settings.mode().name());
+        formalities.setAttribute("coverPage", String.valueOf(settings.coverPage()));
+        formalities.setAttribute("pageWidth", String.valueOf(settings.pageWidth()));
+        formalities.setAttribute("pageUnit", settings.pageUnit());
+        formalities.setAttribute("pageBreakMode", settings.pageBreakMode().name());
+        formalities.setAttribute("showPageNumbers", String.valueOf(settings.showPageNumbers()));
+
+        appendTextElement(doc, formalities, "fachbereich", metadata.fachbereich());
+        appendTextElement(doc, formalities, "abteilung", metadata.abteilung());
+        appendTextElement(doc, formalities, "titel", metadata.titel());
+        appendTextElement(doc, formalities, "artDerArbeit", metadata.artDerArbeit());
+        appendTextElement(doc, formalities, "ort", metadata.ort());
+        for (String autor : metadata.autoren()) {
+            appendTextElement(doc, formalities, "autor", autor);
+        }
+        for (String betreuer : metadata.betreuer()) {
+            appendTextElement(doc, formalities, "betreuer", betreuer);
+        }
+
+        rootElement.appendChild(formalities);
+    }
+
+    private void appendTextElement(Document doc, Element parent, String tagName, String text) {
+        Element element = doc.createElement(tagName);
+        element.setTextContent(text == null ? "" : text);
+        parent.appendChild(element);
+    }
+
+    /**
+     * Liest die LaTeX-Formalitäten aus dem Dokument.
+     *
+     * <p>Fehlt das Element {@code formalities} (Dateien aus älteren Versionen), werden die
+     * Standardwerte geliefert. Fehlen einzelne Angaben oder sind sie ungültig, gilt für diese der Standardwert.</p>
+     *
+     * @param rootElement das Wurzelelement des Dokuments
+     * @return die gelesenen Einstellungen, nie {@code null}
+     */
+    private LatexSettings parseFormalities(Element rootElement) {
+        NodeList found = rootElement.getElementsByTagName("formalities");
+        if (found.getLength() == 0) {
+            return LatexSettings.defaults();
+        }
+        Element formalities = (Element) found.item(0);
+
+        LatexSettings defaults = LatexSettings.defaults();
+        LatexMetadata defaultMetadata = defaults.metadata();
+
+        LatexMetadata metadata = new LatexMetadata(
+                childText(formalities, "fachbereich", defaultMetadata.fachbereich()),
+                childText(formalities, "abteilung", defaultMetadata.abteilung()),
+                childText(formalities, "titel", defaultMetadata.titel()),
+                childText(formalities, "artDerArbeit", defaultMetadata.artDerArbeit()),
+                childTexts(formalities, "autor"),
+                childText(formalities, "ort", defaultMetadata.ort()),
+                childTexts(formalities, "betreuer"));
+
+        return new LatexSettings(
+                LatexSettings.modeFromName(formalities.getAttribute("mode")),
+                attributeBoolean(formalities, "coverPage", defaults.coverPage()),
+                metadata,
+                attributeInt(formalities, "pageWidth", defaults.pageWidth()),
+                formalities.hasAttribute("pageUnit") ? formalities.getAttribute("pageUnit") : defaults.pageUnit(),
+                PageBreakMode.fromName(formalities.getAttribute("pageBreakMode"), defaults.pageBreakMode()),
+                attributeBoolean(formalities, "showPageNumbers", defaults.showPageNumbers()));
+    }
+
+    private String childText(Element parent, String tagName, String fallback) {
+        NodeList list = parent.getElementsByTagName(tagName);
+        return list.getLength() == 0 ? fallback : list.item(0).getTextContent();
+    }
+
+    private List<String> childTexts(Element parent, String tagName) {
+        NodeList list = parent.getElementsByTagName(tagName);
+        List<String> texts = new ArrayList<>();
+        for (int i = 0; i < list.getLength(); i++) {
+            texts.add(list.item(i).getTextContent());
+        }
+        return texts;
+    }
+
+    private boolean attributeBoolean(Element element, String name, boolean fallback) {
+        return element.hasAttribute(name) ? Boolean.parseBoolean(element.getAttribute(name)) : fallback;
+    }
+
+    private int attributeInt(Element element, String name, int fallback) {
+        if (!element.hasAttribute(name)) {
+            return fallback;
+        }
+        try {
+            return Integer.parseInt(element.getAttribute(name).trim());
+        } catch (NumberFormatException e) {
+            return fallback;
+        }
+    }
+
+    /**
      * Fügt die {@link OutlineNode} sowie alle Kindknoten aus dem {@link OutlineController} zum XML-Dokument hinzu.
      *
      * @param doc das {@code Document} das Ziel XML-Dokument
@@ -193,7 +311,7 @@ public class XMLParser {
      * @return die vollständig geparste {@link OutlineNode}
      */
     private OutlineNode parseNode(Element nodeElement) {
-         String title = nodeElement.getAttribute("title");
+        String title = nodeElement.getAttribute("title");
 
         OutlineNode node = new OutlineNode(title);
 

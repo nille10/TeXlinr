@@ -1,8 +1,10 @@
 package controller;
 
+import model.LatexSettings;
 import model.OutlineNode;
 import model.columns.Column;
 import model.columns.ColumnType;
+import view.FormalitiesPanel;
 import view.MainWindow;
 import view.TextWindow;
 import view.OutlinePanel;
@@ -19,6 +21,8 @@ import java.util.List;
  * Controller für die Interaktion mit der Datenstruktur des Outliners zuständig.
  * <p>
  *     Ist zuständig für die manipulation des JTrees. Operationen welche eine Undo funktion benötigen werden direkt über die {@link action.actions.commands} gesteuert.
+ *     Außerdem vermittelt er zwischen den Parsern (Speichern/Laden) und dem {@link FormalitiesPanel}, in dem die
+ *     LaTeX-Einstellungen bearbeitet werden (siehe {@link #getLatexSettings()}, {@link #setLatexSettings(LatexSettings)}).
  * </p>
  */
 public class OutlineController {
@@ -32,6 +36,9 @@ public class OutlineController {
     private final JFrame mainWindow;
     private final MainWindow mainFrame;
     private boolean dirty;
+
+    /** Die Oberfläche der LaTeX-Formalitäten; wird nach dem Erzeugen über {@link #setFormalitiesPanel(FormalitiesPanel)} gesetzt. */
+    private FormalitiesPanel formalitiesPanel;
 
     private boolean isSelected = true;
 
@@ -763,6 +770,51 @@ public class OutlineController {
         // clearColumnHeaders() entfällt: jede Spalte entfernt beim Löschen über
         // removeColumn() bereits ihren eigenen Header (HeaderPanel.columnViewRemoved
         // reagiert direkt auf ColumnController.removeColumn())
+    }
+
+    // ── LaTeX-Formalitäten ───────────────────────────────────────────────────
+
+    /**
+     * Verbindet den Controller mit der Oberfläche der LaTeX-Formalitäten.
+     *
+     * <p>Jede Änderung des Benutzers in diesem Panel markiert das Projekt als ungespeichert
+     * ({@link #markDirty()}). Muss einmal nach dem Erzeugen des Panels und vor dem ersten
+     * Öffnen einer Datei aufgerufen werden.</p>
+     *
+     * @param panel das {@link FormalitiesPanel}
+     */
+    public void setFormalitiesPanel(FormalitiesPanel panel) {
+        this.formalitiesPanel = panel;
+        panel.addChangeListener(this::markDirty);
+    }
+
+    /**
+     * Liefert die aktuellen LaTeX-Einstellungen aus dem {@link FormalitiesPanel}.
+     * Wird von den Parsern zum Speichern und vom Export verwendet.
+     *
+     * @return die aktuellen Einstellungen; die Standardwerte, solange kein Panel verbunden ist
+     */
+    public LatexSettings getLatexSettings() {
+        return formalitiesPanel != null ? formalitiesPanel.getSettings() : LatexSettings.defaults();
+    }
+
+    /**
+     * Setzt die LaTeX-Einstellungen im {@link FormalitiesPanel}, z. B. beim Öffnen eines Projekts.
+     * Markiert das Projekt nicht als geändert.
+     *
+     * @param settings die anzuzeigenden Einstellungen
+     */
+    public void setLatexSettings(LatexSettings settings) {
+        if (formalitiesPanel != null) {
+            formalitiesPanel.setSettings(settings);
+        }
+    }
+
+    /**
+     * Setzt die LaTeX-Einstellungen auf die Standardwerte zurück, z. B. bei einem neuen Dokument.
+     */
+    public void resetLatexSettings() {
+        setLatexSettings(LatexSettings.defaults());
     }
 
     /**

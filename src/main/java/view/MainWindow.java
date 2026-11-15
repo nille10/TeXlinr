@@ -152,6 +152,8 @@ public class MainWindow extends JFrame {
         imageLibrary = new ImageLibrary(ImageLibrary.defaultDirectory());
         ImageManagementPanel imageManagementPanel = new ImageManagementPanel(imageLibrary);
         FormalitiesPanel formalitiesPanel = new FormalitiesPanel();
+        // Speichern/Laden und die Dirty-Markierung der Formalitäten laufen über den OutlineController
+        outlineController.setFormalitiesPanel(formalitiesPanel);
 
         WorkspacePanel workspacePanel = new WorkspacePanel(
                 treeView,
