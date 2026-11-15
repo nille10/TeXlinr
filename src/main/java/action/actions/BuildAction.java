@@ -17,6 +17,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.List;
 import java.util.concurrent.ExecutionException;
+import java.util.function.Consumer;
 
 /**
  * Baut die Gliederung als LaTeX-Dokument, kompiliert sie zu einem PDF und zeigt
@@ -83,6 +84,20 @@ public class BuildAction extends AbstractAction {
 
     @Override
     public void actionPerformed(java.awt.event.ActionEvent e) {
+        buildAnd(null);
+    }
+
+    /**
+     * Baut das Dokument wie beim Klick auf „Build" und ruft danach {@code onSuccess}
+     * mit dem fertigen PDF auf (im Event-Dispatch-Thread). Bei Fehlern erscheint der
+     * übliche Fehlerdialog und {@code onSuccess} wird nicht aufgerufen. Läuft gerade
+     * schon ein Build, passiert nichts.
+     *
+     * @param onSuccess wird mit dem erzeugten PDF aufgerufen, darf {@code null} sein
+     */
+    public void buildAnd(Consumer<Path> onSuccess) {
+        if (!isEnabled()) return;
+
         Path tex = buildDir.resolve(MAIN_TEX);
         try {
             Files.createDirectories(buildDir);
@@ -109,6 +124,7 @@ public class BuildAction extends AbstractAction {
                     LatexCompiler.Result result = get();
                     if (result.success()) {
                         preview.showPdf(result.pdf());
+                        if (onSuccess != null) onSuccess.accept(result.pdf());
                     } else {
                         showBuildErrors(result);
                     }

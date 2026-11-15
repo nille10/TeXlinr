@@ -17,6 +17,7 @@ public class FileActions {
     public final Action saveAsFileAction;
     public final Action saveFileAction;
     public final Action exportAsLatexAction;
+    public final Action exportAsPdfAction;
 
     /**
      * Erstellt alle FileActions und initialisiert diese mit einem {@link FileController}.
@@ -29,5 +30,6 @@ public class FileActions {
         saveAsFileAction = new SaveAsFileAction(fileController);
         saveFileAction = new SaveFileAction(fileController);
         exportAsLatexAction = new ExportAsLatexAction(fileController);
+        exportAsPdfAction = new ExportAsPdfAction(fileController);
     }
 }

@@ -54,6 +54,9 @@ public class Menubar extends JMenuBar {
         JMenuItem exportAsLatex = menuItem(fileActions.exportAsLatexAction);
         datei.add(exportAsLatex);
 
+        JMenuItem exportAsPdf = menuItem(fileActions.exportAsPdfAction);
+        datei.add(exportAsPdf);
+
         datei.addSeparator();
         JMenuItem close = menuItem(fileActions.closeAction);
         datei.add(close);

@@ -1,5 +1,6 @@
 package controller;
 
+import action.actions.BuildAction;
 import model.JSONParser;
 import model.OutlineNode;
 import model.XMLParser;
@@ -17,6 +18,7 @@ import java.awt.event.WindowEvent;
 import java.io.*;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.StandardCopyOption;
 import java.nio.file.attribute.FileTime;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
@@ -41,6 +43,8 @@ public class FileController {
     private final OutlineController outlineController;
     private File saveLocation;
     private FileTime lastSavedTime;
+    private BuildAction buildAction;
+    private File lastPdfDirectory;
 
     /**
      * Erstellt einen neuen {@code FileController}
@@ -211,6 +215,85 @@ public class FileController {
     public void exportLatexTo(Path texFile) throws IOException {
         new LATEXParser(outlineController, mainWindow, treeModel, mainWindow.getImageLibrary())
                 .exportTo(texFile);
+    }
+
+    /**
+     * Legt den Build fest, mit dem {@link #exportAsPdf()} das PDF erzeugt. Wird vom
+     * {@code MainWindow} gesetzt, sobald der Build existiert.
+     *
+     * @param buildAction der Build der PDF-Vorschau
+     */
+    public void setBuildAction(BuildAction buildAction) {
+        this.buildAction = buildAction;
+    }
+
+    /**
+     * Baut das Dokument und speichert das PDF unter einem gewählten Pfad.
+     * <p>
+     *     Der Speicherort wird vor dem Build abgefragt, ein Abbruch kostet also keine Wartezeit.
+     *     Vorgeschlagen wird der Name der geöffneten Datei, sonst der Titel des Dokuments.
+     *     Gebaut wird neu, damit das PDF zum aktuellen Stand der Gliederung passt (die Vorschau
+     *     wird dabei ebenfalls aktualisiert). Der zuletzt gewählte Ordner wird gemerkt.
+     * </p>
+     * @see BuildAction#buildAnd(java.util.function.Consumer)
+     */
+    public void exportAsPdf() {
+        if (buildAction == null) {
+            errorWindow("Der Build ist noch nicht bereit.");
+            return;
+        }
+
+        CFileChooser fileChooser = new CFileChooser("Als PDF exportieren",
+                new FileNameExtensionFilter("PDF-Dokument (*.pdf)", "pdf"));
+
+        File directory = lastPdfDirectory != null ? lastPdfDirectory
+                : saveLocation != null ? saveLocation.getParentFile() : null;
+        if (directory != null) {
+            fileChooser.setCurrentDirectory(directory);
+        }
+        fileChooser.setSelectedFile(new File(directory, suggestedPdfName()));
+
+        if (fileChooser.getSaveResult(mainWindow) != JFileChooser.APPROVE_OPTION || fileChooser.getFile() == null) {
+            return;
+        }
+
+        File target = fileChooser.getFile();
+        if (!target.getName().toLowerCase().endsWith(".pdf")) {
+            target = new File(target.getParentFile(), target.getName() + ".pdf");
+        }
+        lastPdfDirectory = target.getParentFile();
+
+        if (target.exists() && JOptionPane.showConfirmDialog(mainWindow,
+                "„" + target.getName() + "“ existiert bereits. Überschreiben?",
+                "Als PDF exportieren", JOptionPane.OK_CANCEL_OPTION,
+                JOptionPane.WARNING_MESSAGE) != JOptionPane.OK_OPTION) {
+            return;
+        }
+
+        Path targetPath = target.toPath();
+        mainWindow.getStatusBar().setText(" PDF wird erzeugt …");
+        buildAction.buildAnd(pdf -> {
+            try {
+                Files.copy(pdf, targetPath, StandardCopyOption.REPLACE_EXISTING);
+                mainWindow.getStatusBar().setText(" PDF gespeichert: " + targetPath);
+            } catch (IOException e) {
+                mainWindow.getStatusBar().setText(" Bereit");
+                errorWindow("Das PDF konnte nicht gespeichert werden:\n" + e.getMessage()
+                        + "\n\nIst die Datei vielleicht in einem PDF-Programm geöffnet?");
+            }
+        });
+    }
+
+    /** Dateiname-Vorschlag: Name der geöffneten Datei, sonst Dokumenttitel, sonst „Arbeit". */
+    private String suggestedPdfName() {
+        String base = "";
+        if (saveLocation != null) {
+            base = saveLocation.getName().replaceFirst("\\.[^.]*$", "");
+        } else if (!outlineController.getHeaderTitle().isBlank()) {
+            base = outlineController.getHeaderTitle();
+        }
+        base = base.replaceAll("[\\\\/:*?\"<>|]", "_").strip();
+        return (base.isEmpty() ? "Arbeit" : base) + ".pdf";
     }
 
     /**

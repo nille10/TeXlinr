@@ -140,6 +140,8 @@ public class MainWindow extends JFrame {
                 new LatexCompiler());              // oder new LatexCompiler(LatexCompiler.Engine.XELATEX)
         build.registerShortcuts(getRootPane());
 
+        fileController.setBuildAction(build);
+
         // Menüleiste
         Menubar menubar = new Menubar(fileActions, outlineActions, editActions, this, outlinePanel, outlineController);
         setJMenuBar(menubar);
