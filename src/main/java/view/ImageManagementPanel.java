@@ -94,10 +94,14 @@ public class ImageManagementPanel extends JPanel {
         detailScroll.getVerticalScrollBar().setUnitIncrement(16);
         detailScroll.setPreferredSize(new Dimension(350, 400));
 
+        listScroll.setMinimumSize(new Dimension(200, 0));
+        detailScroll.setMinimumSize(new Dimension(260, 0));
+
         JSplitPane split = new JSplitPane(JSplitPane.HORIZONTAL_SPLIT, listScroll, detailScroll);
-        split.setResizeWeight(1.0);
+        split.setResizeWeight(0.5);
         split.setContinuousLayout(true);
         split.setBorder(null);
+        keepDividerRatio(split);
         add(split, BorderLayout.CENTER);
 
         installFileDrop();
@@ -110,6 +114,54 @@ public class ImageManagementPanel extends JPanel {
         });
 
         refresh();
+    }
+
+    /**
+     * Hält das Teilungsverhältnis des Trenners bei Größenänderungen stabil: zunächst 50/50,
+     * nach dem Verschieben mit der Maus das vom Nutzer gewählte Verhältnis. Ändert sich die
+     * Breite (z. B. weil die PDF-Vorschau größer gezogen wird), wird der Trenner entsprechend
+     * mitgeführt, statt dass eine Seite alles schluckt.
+     */
+    private static void keepDividerRatio(JSplitPane split) {
+        double[] ratio = {0.5};
+        boolean[] adjusting = {false};
+
+        Runnable apply = () -> {
+            int available = split.getWidth() - split.getDividerSize();
+            if (available <= 0) return;
+            adjusting[0] = true;
+            try {
+                split.setDividerLocation((int) Math.round(ratio[0] * available));
+            } finally {
+                adjusting[0] = false;
+            }
+        };
+
+        split.addComponentListener(new java.awt.event.ComponentAdapter() {
+            @Override public void componentResized(java.awt.event.ComponentEvent e) { apply.run(); }
+            @Override public void componentShown(java.awt.event.ComponentEvent e)   { apply.run(); }
+        });
+
+        // Nur ein Verschieben durch den Nutzer ändert das Verhältnis
+        java.awt.event.MouseAdapter userDrag = new java.awt.event.MouseAdapter() {
+            private void remember() {
+                int available = split.getWidth() - split.getDividerSize();
+                if (available > 0 && !adjusting[0]) {
+                    ratio[0] = Math.max(0.05, Math.min(0.95, split.getDividerLocation() / (double) available));
+                }
+            }
+            @Override public void mouseDragged(MouseEvent e)  { remember(); }
+            @Override public void mouseReleased(MouseEvent e) { remember(); }
+        };
+        java.util.function.Consumer<JSplitPane> attach = s -> {
+            if (s.getUI() instanceof javax.swing.plaf.basic.BasicSplitPaneUI ui) {
+                ui.getDivider().addMouseListener(userDrag);
+                ui.getDivider().addMouseMotionListener(userDrag);
+            }
+        };
+        attach.accept(split);
+        // Beim Wechsel des Themes wird der Trenner neu erzeugt
+        split.addPropertyChangeListener("UI", e -> attach.accept(split));
     }
 
     // ── Öffentliche API ──────────────────────────────────────────────────────

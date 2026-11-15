@@ -188,21 +188,31 @@ public class MainWindow extends JFrame {
         });
         searchOverlay.install();
 
+        // Arbeitsbereich und PDF-Vorschau sind durch einen verschiebbaren Trenner getrennt
+        workspacePanel.setMinimumSize(new Dimension(420, 0));
+        JSplitPane split = new JSplitPane(JSplitPane.HORIZONTAL_SPLIT, workspacePanel, preview);
+        split.setResizeWeight(1.0);          // beim Vergrößern des Fensters wächst der Arbeitsbereich
+        split.setContinuousLayout(true);     // Vorschau passt sich beim Ziehen live an
+        split.setDividerSize(6);
+        split.setBorder(null);
+        split.addComponentListener(new java.awt.event.ComponentAdapter() {
+            private boolean initialized;
+            @Override
+            public void componentResized(java.awt.event.ComponentEvent e) {
+                // Einmalig die Startbreite der Vorschau setzen (ihre bevorzugte Breite, 410 px)
+                if (!initialized && split.getWidth() > 0) {
+                    initialized = true;
+                    split.setDividerLocation(split.getWidth() - split.getDividerSize()
+                            - preview.getPreferredSize().width);
+                }
+            }
+        });
+
         // Hauptlayout
         getContentPane().setLayout(new BorderLayout());
         getContentPane().add(toolbar, BorderLayout.NORTH);
         getContentPane().add(navigationSidebar, BorderLayout.WEST);
-        getContentPane().add(workspacePanel, BorderLayout.CENTER);
-        getContentPane().add(preview, BorderLayout.EAST);
-
-        // Hinweis MVC-Umbau: Die Zeile
-        //   outlinePanel.getColumnPanel().setOnDataChanged(outlineController::markDirty);
-        // entfällt. ColumnPanel kennt Spaltendaten nicht mehr und bietet daher kein
-        // setOnDataChanged mehr an. Das Verdrahten mit markDirty() übernimmt jetzt
-        // OutlinePanel selbst über columnController.setOnChange(...) in seinem
-        // Konstruktor - und deckt dort konsistent alle Änderungsarten ab (Spalte
-        // hinzugefügt, entfernt, umbenannt, Zellenwert geändert), nicht nur
-        // Zelländerungen wie bisher.
+        getContentPane().add(split, BorderLayout.CENTER);
 
         // Status-Leiste
         statusBar = new JLabel(" Bereit");
