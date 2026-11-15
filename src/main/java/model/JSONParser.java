@@ -89,6 +89,7 @@ public class JSONParser {
         sb.append("    \"pageUnit\" : \"").append(escapeJson(settings.pageUnit())).append("\",\n");
         sb.append("    \"pageBreakMode\" : \"").append(settings.pageBreakMode().name()).append("\",\n");
         sb.append("    \"showPageNumbers\" : ").append(settings.showPageNumbers()).append(",\n");
+        sb.append("    \"logo\" : \"").append(escapeJson(settings.logoLabel())).append("\",\n");
         sb.append("    \"fachbereich\" : \"").append(escapeJson(metadata.fachbereich())).append("\",\n");
         sb.append("    \"abteilung\" : \"").append(escapeJson(metadata.abteilung())).append("\",\n");
         sb.append("    \"titel\" : \"").append(escapeJson(metadata.titel())).append("\",\n");
@@ -315,6 +316,7 @@ public class JSONParser {
         String pageUnit = defaults.pageUnit();
         PageBreakMode breakMode = defaults.pageBreakMode();
         boolean pageNumbers = defaults.showPageNumbers();
+        String logoLabel = defaults.logoLabel();
 
         String fachbereich = defaultMetadata.fachbereich();
         String abteilung = defaultMetadata.abteilung();
@@ -351,6 +353,7 @@ public class JSONParser {
                 case "pageUnit" -> pageUnit = parseString(json);
                 case "pageBreakMode" -> breakMode = PageBreakMode.fromName(parseString(json), breakMode);
                 case "showPageNumbers" -> pageNumbers = Boolean.parseBoolean(parseLiteral(json));
+                case "logo" -> logoLabel = parseString(json);
                 case "fachbereich" -> fachbereich = parseString(json);
                 case "abteilung" -> abteilung = parseString(json);
                 case "titel" -> titel = parseString(json);
@@ -374,7 +377,8 @@ public class JSONParser {
                 pageWidth,
                 pageUnit,
                 breakMode,
-                pageNumbers);
+                pageNumbers,
+                logoLabel);
     }
 
     /**

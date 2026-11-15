@@ -6,10 +6,7 @@ KI generiert
 
 package action.actions;
 
-import model.LatexExportMode;
-import model.LatexMetadata;
 import service.LatexCompiler;
-import view.LatexExportDialog;
 import view.PDFPreviewPanel;
 
 import javax.swing.*;
@@ -27,10 +24,8 @@ import java.util.concurrent.ExecutionException;
  *
  * <p>Ablauf bei jedem Klick (oder F5 / Strg+B):</p>
  * <ol>
- *   <li>Beim ersten Build wird der Export-Modus (und ggf. die Titelseiten-Angaben)
- *       über {@link LatexExportDialog} abgefragt und danach gemerkt, damit
- *       Folge-Builds ohne Dialog laufen. {@link #resetSettings()} vergisst sie wieder.</li>
- *   <li>Der Export ({@link TexExporter}) schreibt {@code main.tex} in das Build-Verzeichnis.
+ *   <li>Der Export ({@link TexExporter}) liest alle Formalitäten (Vorlage, Titelseite, Seitenformat ...)
+ *       aus dem Formalitäten-Panel und schreibt {@code main.tex} in das Build-Verzeichnis.
  *       Das läuft im Event-Dispatch-Thread, damit die Gliederung währenddessen
  *       nicht verändert wird.</li>
  *   <li>{@link LatexCompiler} läuft im Hintergrund, die Oberfläche bleibt bedienbar.</li>
@@ -44,11 +39,9 @@ public class BuildAction extends AbstractAction {
     @FunctionalInterface
     public interface TexExporter {
         /**
-         * @param mode     der gewählte Export-Modus
-         * @param metadata die Titelseiten-Angaben, {@code null} wenn der Modus keine verlangt
-         * @param texFile  Zieldatei ({@code main.tex} im Build-Verzeichnis)
+         * @param texFile Zieldatei ({@code main.tex} im Build-Verzeichnis)
          */
-        void export(LatexExportMode mode, LatexMetadata metadata, Path texFile) throws IOException;
+        void export(Path texFile) throws IOException;
     }
 
     private static final String MAIN_TEX = "main.tex";
@@ -58,9 +51,6 @@ public class BuildAction extends AbstractAction {
     private final PDFPreviewPanel preview;
     private final Path buildDir;
     private final LatexCompiler compiler;
-
-    private LatexExportMode mode;
-    private LatexMetadata metadata;
 
     /**
      * @param frame    Elternfenster für Dialoge
@@ -91,20 +81,12 @@ public class BuildAction extends AbstractAction {
         rootPane.getActionMap().put("build", this);
     }
 
-    /** Vergisst Modus und Metadaten, beim nächsten Build werden sie neu abgefragt. */
-    public void resetSettings() {
-        mode = null;
-        metadata = null;
-    }
-
     @Override
     public void actionPerformed(java.awt.event.ActionEvent e) {
-        if (!askSettingsIfNeeded()) return;
-
         Path tex = buildDir.resolve(MAIN_TEX);
         try {
             Files.createDirectories(buildDir);
-            exporter.export(mode, metadata, tex);
+            exporter.export(tex);
         } catch (IOException | RuntimeException ex) {
             showError("Export fehlgeschlagen", String.valueOf(ex.getMessage()));
             return;
@@ -137,25 +119,6 @@ public class BuildAction extends AbstractAction {
                 }
             }
         }.execute();
-    }
-
-    // ── Einstellungen ────────────────────────────────────────────────────────
-
-    /** @return {@code false}, wenn der Benutzer abgebrochen hat */
-    private boolean askSettingsIfNeeded() {
-        if (mode != null) return true;
-
-        LatexExportMode chosen = LatexExportDialog.askMode(frame);
-        if (chosen == LatexExportMode.CANCELLED) return false;
-
-        LatexMetadata meta = null;
-        if (chosen == LatexExportMode.EXPERT) {
-            meta = LatexExportDialog.askMetadata(frame);
-            if (meta == null) return false;
-        }
-        mode = chosen;
-        metadata = meta;
-        return true;
     }
 
     // ── Fehlerdialoge ────────────────────────────────────────────────────────

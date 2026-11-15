@@ -1,8 +1,8 @@
 package model;
 
 import controller.OutlineController;
-import view.LatexExportDialog;
 import view.CFileChooser;
+import model.image.ImageEntry;
 import model.image.ImageLibrary;
 
 import javax.swing.*;
@@ -12,6 +12,7 @@ import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.Locale;
 import java.util.Objects;
 
 /**
@@ -22,11 +23,11 @@ import java.util.Objects;
  * </p>
  *
  * <p>
- *   Die Klasse bietet zwei Einstiegspunkte: {@link #exportAsLatex()} fragt Modus,
- *   Titelseiten-Angaben und Speicherort über Dialoge ab (Menü-Export), während
- *   {@link #exportTo(Path, LatexExportMode, LatexMetadata)} ohne jeden Dialog direkt
- *   in eine Datei schreibt (z. B. für den Build der PDF-Vorschau). Beide erzeugen
- *   exakt dasselbe Dokument.
+ *   Alle Einstellungen des Dokuments (Vorlage, Titelseite, Autoren, Seitenformat, Seitenumbrüche,
+ *   Seitenzahlen, Logo) kommen aus den Formalitäten, siehe {@link LatexSettings}. Es gibt keine
+ *   Export-Dialoge mehr. Die Klasse bietet zwei Einstiegspunkte: {@link #exportAsLatex()} fragt nur
+ *   noch nach dem Speicherort (Menü-Export), {@link #exportTo(Path)} schreibt ohne jeden Dialog direkt
+ *   in eine Datei (z. B. für den Build der PDF-Vorschau). Beide erzeugen exakt dasselbe Dokument.
  * </p>
  */
 public class LATEXParser {
@@ -38,6 +39,9 @@ public class LATEXParser {
 
     /** Löst {@code \fig:label}-Kürzel auf; wird bei jedem Export neu erzeugt. */
     private FigureReferenceExpander figures;
+
+    /** Die Formalitäten des laufenden Exports; wird zu Beginn von {@link #exportTo(Path)} gelesen. */
+    private LatexSettings settings;
 
     /**
      * Erstellt einen neunen {@code LATEXParser}.
@@ -58,36 +62,21 @@ public class LATEXParser {
      * Exportiert den Inhalt des {@link OutlineController} in LATEX-Format
      *
      * <p>
-     *   Öffnet einen Dialog um zu ermitteln in welchem Modus das LATEX-Dokument generiert werden soll (siehe {@link LatexExportDialog}.
-     *   Abhängig vom gewählten Modus wird das generierte LATEX-Dokument an dem ausgewählten Ort (siehe {@link #exportAsLatexDialog()}) gespeichert.
-     *   Die eigentliche Erzeugung übernimmt {@link #exportTo(Path, LatexExportMode, LatexMetadata)}.
+     *   Öffnet nur noch den Dialog für den Speicherort (siehe {@link #exportAsLatexDialog()}).
+     *   Vorlage und alle weiteren Angaben stammen aus den Formalitäten; die eigentliche Erzeugung
+     *   übernimmt {@link #exportTo(Path)}.
      * </p>
      *
      * @throws IOException wenn beim Schreiben auf der Festplatte ein fehler auftrit
      */
     public void exportAsLatex() throws IOException {
 
-        LatexExportMode mode = LatexExportDialog.askMode(mainWindow);
-
-        if (mode == LatexExportMode.CANCELLED) {
-            return;
-        }
-
-        LatexMetadata metadata = null;
-
-        if (mode == LatexExportMode.EXPERT) {
-            metadata = LatexExportDialog.askMetadata(mainWindow);
-            if (metadata == null) {
-                return; // Nutzer hat abgebrochen
-            }
-        }
-
         File saveLocation = exportAsLatexDialog();
         if (saveLocation == null) {
             return;
         }
 
-        exportTo(saveLocation.toPath(), mode, metadata);
+        exportTo(saveLocation.toPath());
     }
 
     /**
@@ -99,25 +88,18 @@ public class LATEXParser {
      *   kopiert, damit {@code \includegraphics{img/...}} die Bilder findet. Kürzel wie
      *   {@code \fig:board} in den Notizen werden durch die {@code figure}-Umgebung des
      *   Bildes mit diesem Label ersetzt (siehe {@link FigureReferenceExpander}).
-     *   Logos der Titelseite werden nur eingebunden, wenn sie relativ zum Zielverzeichnis
-     *   existieren (siehe {@link #includeGraphicIfPresent(Path, String, String)}), damit
-     *   das Dokument auch ohne diese Dateien kompiliert.
+     *   Das Logo der Titelseite wird über sein Label aus den Formalitäten gewählt
+     *   (siehe {@link #buildLogoCommand()}); ist keines gewählt, bleibt der Platz leer.
      * </p>
      *
-     * @param texFile  die Zieldatei
-     * @param mode     {@link LatexExportMode#STANDARD} oder {@link LatexExportMode#EXPERT}
-     * @param metadata die Titelseiten-Angaben; wird nur im Modus {@code EXPERT} benötigt und sonst ignoriert
-     * @throws IOException              wenn beim Schreiben auf der Festplatte ein Fehler auftritt
-     * @throws IllegalArgumentException wenn der Modus ungültig ist oder im Modus {@code EXPERT} keine Metadaten übergeben wurden
+     * @param texFile die Zieldatei
+     * @throws IOException wenn beim Schreiben auf der Festplatte ein Fehler auftritt
      */
-    public void exportTo(Path texFile, LatexExportMode mode, LatexMetadata metadata) throws IOException {
+    public void exportTo(Path texFile) throws IOException {
         Objects.requireNonNull(texFile, "texFile");
-        if (mode == null || mode == LatexExportMode.CANCELLED) {
-            throw new IllegalArgumentException("Ungültiger Export-Modus: " + mode);
-        }
-        if (mode == LatexExportMode.EXPERT && metadata == null) {
-            throw new IllegalArgumentException("Der benutzerdefinierte Export benötigt Titelseiten-Angaben.");
-        }
+
+        // Momentaufnahme der Formalitäten: der gesamte Export verwendet denselben Stand
+        settings = outlineController.getLatexSettings();
 
         Path target = texFile.toAbsolutePath();
         Path directory = target.getParent();
@@ -125,9 +107,7 @@ public class LATEXParser {
             Files.createDirectories(directory);
         }
 
-        // Auch von außen in img/ kopierte Bilder berücksichtigen. Die Bilder müssen vor dem
-        // Erzeugen des Dokuments im Zielordner liegen, weil Logos nur eingebunden werden,
-        // wenn sie dort existieren.
+        // Auch von außen in img/ kopierte Bilder berücksichtigen (Labels für Kürzel und Logo)
         imageLibrary.refresh();
         if (directory != null) {
             imageLibrary.copyImagesTo(directory);
@@ -135,8 +115,7 @@ public class LATEXParser {
         figures = new FigureReferenceExpander(imageLibrary);
 
         String body = toLatexString((OutlineNode) treeModel.getRoot());
-        String fullDocument = buildFullLatexDocument(
-                mode == LatexExportMode.EXPERT ? metadata : null, body, directory);
+        String fullDocument = buildFullLatexDocument(body);
 
         Files.writeString(target, fullDocument);
     }
@@ -144,12 +123,18 @@ public class LATEXParser {
     /**
      * Erstellt einen String bestehend aus den Knoten des Outliners (siehe {@link #getNodes(OutlineNode)}).
      *
+     * <p>Bei {@link PageBreakMode#BEFORE_EACH_SECTION} beginnt jeder Haupteintrag außer dem ersten auf
+     * einer neuen Seite (der erste folgt direkt auf Titel bzw. Inhaltsverzeichnis).</p>
+     *
      * @param node der Wurzelknoten der zu parsenden Elemente
      * @return einen String nach dem oben beschriebenen Muster
      */
     private String toLatexString(OutlineNode node) {
         StringBuilder latexStr = new StringBuilder();
         for (int i = 0; i < node.getChildCount(); i++) {
+            if (i > 0 && settings.pageBreakMode() == PageBreakMode.BEFORE_EACH_SECTION) {
+                latexStr.append("\\clearpage\n\n");
+            }
             latexStr.append(getNodes((OutlineNode) node.getChildAt(i)));
         }
         return latexStr.toString();
@@ -209,26 +194,27 @@ public class LATEXParser {
     }
 
     /**
-     * Erstellt das komplette LATEX-Dokument, abhängig von der Wahl des Benutzers
-     * (siehe {@link #buildStandardLatexDocument(String)} und {@link #buildExpertLatexDocument(LatexMetadata, String, Path)}).
+     * Erstellt das komplette LATEX-Dokument in der Vorlage aus den Formalitäten
+     * (siehe {@link #buildStandardLatexDocument(String)} und {@link #buildExpertLatexDocument(LatexMetadata, String)}).
      *
-     * @param metadata Titelseiten-Angaben; wenn metadata {@code null} ist, wird das Dokument im Standard Modus erzeugt.
      * @param body die Knoten im LATEX-Format
-     * @param assetDir das Verzeichnis, relativ zu dem Grafiken (Logos) gesucht werden
      *
-     * @return den fertigen String im gewählten Modus
+     * @return den fertigen String in der gewählten Vorlage
      */
-    private String buildFullLatexDocument(LatexMetadata metadata, String body, Path assetDir) {
+    private String buildFullLatexDocument(String body) {
 
-        if (metadata == null) {
-            return buildStandardLatexDocument(body);
+        if (settings.mode() == LatexExportMode.EXPERT) {
+            return buildExpertLatexDocument(settings.metadata(), body);
         }
 
-        return buildExpertLatexDocument(metadata, body, assetDir);
+        return buildStandardLatexDocument(body);
     }
 
     /**
      * Bau eines Standard-LATEX-Dokuments
+     *
+     * <p>Titel ist die Überschrift des Outliners, die Autoren kommen aus den Formalitäten (mehrere werden mit
+     * {@code \and} getrennt). Papierformat und Seitenzahlen folgen den Formalitäten.</p>
      *
      * @param body Knoten als LATEX-String
      * @return String des fertigen Standard-Dokuments
@@ -239,16 +225,28 @@ public class LATEXParser {
 
         String heute = "\\today";
 
+        String authors = String.join(" \\and ",
+                settings.metadata().autoren().stream().map(this::escapeLatex).toList());
+
         StringBuilder tex = new StringBuilder();
 
-        tex.append("\\documentclass{article}\n");
+        tex.append(isA4() ? "\\documentclass[a4paper]{article}\n" : "\\documentclass{article}\n");
         tex.append("\\usepackage{graphicx} % Required for inserting images\n");
         tex.append("\\usepackage{float} % Platzierung [H] für Abbildungen\n");
+        tex.append("\\usepackage{listings} % Codeblöcke (lstlisting)\n");
+        tex.append("\\usepackage{amsmath}\n");
+        tex.append("\\usepackage{amssymb}\n");
+        if (!isA4()) {
+            tex.append("\\usepackage[").append(paperOptions()).append("]{geometry}\n");
+        }
         tex.append("\\title{").append(escapeLatex(rootTitle)).append("}\n");
-        tex.append("\\author{EINFÜGEN}\n");
+        tex.append("\\author{").append(authors).append("}\n");
         tex.append("\\date{").append(heute).append("}\n\n");
 
         tex.append("\\begin{document}\n");
+        if (!settings.showPageNumbers()) {
+            tex.append("\\pagenumbering{gobble}\n");
+        }
         tex.append("\\maketitle\n\n");
 
         tex.append(body);
@@ -259,7 +257,10 @@ public class LATEXParser {
     }
 
     /**
-     * Erzeugt ein komplettes LATEX-Dokument mit Informationen wie Fachbereich, Abteilung, Autor, ... (siehe {@link LatexExportDialog}
+     * Erzeugt ein komplettes LATEX-Dokument mit Informationen wie Fachbereich, Abteilung, Autor, ... (siehe {@link LatexSettings})
+     *
+     * <p>Titelseite samt Inhaltsverzeichnis gibt es nur, wenn sie in den Formalitäten eingeschaltet ist.
+     * Papierformat und Seitenzahlen folgen ebenfalls den Formalitäten.</p>
      *
      * <p>Das Dokument basiert auf der Klasse {@code article}; alle Zähler und Kopfzeilen-Befehle
      * sind daher auf {@code section} statt {@code chapter} ausgelegt (ein {@code chapter}-Zähler
@@ -267,14 +268,13 @@ public class LATEXParser {
      *
      * @param metadata allgemeine Informationen für das LATEX-Dokument
      * @param body die Knoten in LATEX-Form (siehe {@link #getNodes(OutlineNode)}
-     * @param assetDir das Verzeichnis, relativ zu dem Grafiken (Logos) gesucht werden
      * @return einen String mit einem kompletten LATEX-Dokument
      */
-    private String buildExpertLatexDocument(LatexMetadata metadata, String body, Path assetDir) {
+    private String buildExpertLatexDocument(LatexMetadata metadata, String body) {
 
         StringBuilder tex = new StringBuilder();
 
-        tex.append("\\documentclass[a4paper,12pt]{article}\n\n");
+        tex.append("\\documentclass[12pt]{article}\n\n");
 
         tex.append("% ---- Encoding & Sprache ----\n");
         tex.append("\\usepackage[utf8]{inputenc}\n");
@@ -286,7 +286,7 @@ public class LATEXParser {
         tex.append("\\usepackage{xcolor}\n");
         tex.append("\\usepackage{geometry}\n");
         tex.append("\\usepackage{calc}\n");
-        tex.append("\\geometry{a4paper, margin=2.5cm}\n\n");
+        tex.append("\\geometry{").append(paperOptions()).append(", margin=2.5cm}\n\n");
 
         tex.append("% ---- Hintergrundbild (optional, siehe \\BackgroundWave) ----\n");
         tex.append("\\usepackage{eso-pic}\n");
@@ -336,6 +336,7 @@ public class LATEXParser {
         tex.append("% ---- Kopf-/Fußzeile ----\n");
         tex.append("\\usepackage{fancyhdr}\n");
         tex.append("\\pagestyle{fancy}\n");
+        tex.append("\\setlength{\\headheight}{14.5pt}\n");
         tex.append("\\fancyhead{}\n");
         tex.append("\\fancyfoot{}\n");
         tex.append("\\renewcommand{\\sectionmark}[1]{\\markright{\\thesection.\\ #1}{}}\n");
@@ -413,8 +414,12 @@ public class LATEXParser {
 
         tex.append("\\begin{document}\n\n");
 
-        if (metadata != null) {
-            tex.append(buildTitlePage(metadata, assetDir));
+        if (!settings.showPageNumbers()) {
+            tex.append("\\pagenumbering{gobble}\n\n");
+        }
+
+        if (settings.coverPage()) {
+            tex.append(buildTitlePage(metadata));
             tex.append("\\newpage\n\n");
             tex.append("\\thispagestyle{empty}\n");
             tex.append("\\tableofcontents\n");
@@ -432,10 +437,9 @@ public class LATEXParser {
     /**
      * Erzeugt die Titelseite eines LATEX-Dokuments
      * @param metadata metadaten für das LATEX-Dokument
-     * @param assetDir das Verzeichnis, relativ zu dem das Logo {@code img/hsel-allgemein} gesucht wird
-     * @return fertige Titelseite
+     * @return fertige Titelseite; das Logo oben links kommt aus {@link #buildLogoCommand()}
      */
-    private String buildTitlePage(LatexMetadata metadata, Path assetDir) {
+    private String buildTitlePage(LatexMetadata metadata) {
 
         StringBuilder sb = new StringBuilder();
 
@@ -443,7 +447,7 @@ public class LATEXParser {
         sb.append("\\vspace{-0.5cm}\n");
         sb.append("\\hspace{-2.0cm}\n");
         sb.append("\\begin{tabular}{p{8.0cm} p{8.0cm}}\n");
-        sb.append("  ").append(includeGraphicIfPresent(assetDir, "img/hsel-allgemein", "[width = 6.0cm]")).append(" &\n");
+        sb.append("  ").append(buildLogoCommand()).append(" &\n");
         sb.append("   \\parbox[b]{8.0cm}{\n");
         sb.append("     {\\large \t").append(escapeLatex(metadata.fachbereich())).append(" }\\\\\n");
         sb.append("     {\\large \t").append(escapeLatex(metadata.abteilung())).append(" }     \n");
@@ -455,7 +459,7 @@ public class LATEXParser {
         sb.append("\\begin{center}\n");
         sb.append("\\vspace{2.5cm}%\n");
         sb.append("\\LARGE{\\textsc{ %\n");
-        sb.append(escapeLatex(metadata.titel())).append("}}\\\\\n");
+        sb.append(escapeLatex(titleOf(metadata))).append("}}\\\\\n");
         sb.append("\\vspace{2.5cm}%\n");
         sb.append("\\LARGE{\\textsc{%\n");
         sb.append("{").append(escapeLatex(metadata.artDerArbeit())).append("} % ODER: Projektarbeit\n");
@@ -488,26 +492,68 @@ public class LATEXParser {
     }
 
     /**
-     * Liefert einen {@code \includegraphics}-Befehl, wenn die Grafik existiert, sonst eine leere Box.
+     * Liefert den LATEX-Befehl für das Logo oben links auf der Titelseite.
      *
-     * <p>Damit bricht LATEX nicht mit "File not found" ab, wenn ein Logo nicht neben der
-     * {@code .tex}-Datei liegt (z. B. im temporären Build-Verzeichnis). Geprüft werden
-     * die Endungen pdf, png, jpg und jpeg.</p>
+     * <p>Welches Bild gemeint ist, steht als Label in den Formalitäten (z. B. {@code fig:logo},
+     * siehe {@link LatexSettings#logoLabel()}). Es wird in der {@link ImageLibrary} gesucht; die Datei liegt
+     * nach {@link #exportTo(Path)} bereits unter {@code img/} neben der
+     * {@code .tex}-Datei. Das Logo wird auf 6 cm Breite und höchstens 3 cm Höhe
+     * (bei erhaltenem Seitenverhältnis) skaliert, damit auch hohe Logos die Titelseite nicht sprengen.</p>
      *
-     * @param baseDir      das Verzeichnis, in dem relativ gesucht wird (kann {@code null} sein)
-     * @param relativeBase relativer Pfad ohne Endung, z. B. {@code "img/hsel-allgemein"}
-     * @param options      die optionalen Argumente in eckigen Klammern, z. B. {@code "[width = 6.0cm]"}
-     * @return der LATEX-Befehl, oder {@code \mbox{}} wenn keine passende Datei gefunden wurde
+     * <p>Ist kein Label eingetragen oder passt es zu keinem Bild, wird eine leere Box geliefert,
+     * damit das Dokument trotzdem kompiliert und die Kopftabelle der Titelseite erhalten bleibt.</p>
+     *
+     * @return der {@code \includegraphics}-Befehl oder {@code \mbox{}}
      */
-    private String includeGraphicIfPresent(Path baseDir, String relativeBase, String options) {
-        if (baseDir != null) {
-            for (String extension : new String[]{".pdf", ".png", ".jpg", ".jpeg"}) {
-                if (Files.exists(baseDir.resolve(relativeBase + extension))) {
-                    return "\\includegraphics" + options + "{" + relativeBase + "}";
+    private String buildLogoCommand() {
+        String label = settings.logoLabel();
+        if (!label.isEmpty()) {
+            for (ImageEntry entry : imageLibrary.getEntries()) {
+                if (label.equals(entry.getLabel())) {
+                    return "\\includegraphics[width=6.0cm,height=3.0cm,keepaspectratio]{"
+                            + entry.getLatexPath() + "}";
                 }
             }
         }
         return "\\mbox{}";
+    }
+
+    /** Seitenbreite der Formalitäten in Millimetern. */
+    private double pageWidthMm() {
+        double w = settings.pageWidth();
+        String unit = settings.pageUnit() == null ? "mm" : settings.pageUnit().toLowerCase(Locale.ROOT);
+        return switch (unit) {
+            case "cm" -> w * 10.0;
+            case "inch", "in" -> w * 25.4;
+            default -> w;
+        };
+    }
+
+    /** {@code true}, wenn die Seitenbreite der von DIN A4 (210 mm) entspricht. */
+    private boolean isA4() {
+        return Math.abs(pageWidthMm() - 210.0) < 0.5;
+    }
+
+    /**
+     * Papiergröße für das geometry-Paket. A4 wird als {@code a4paper} geschrieben, sonst wird aus der Breite
+     * die Höhe im Seitenverhältnis der A-Reihe (1 : √2) berechnet.
+     */
+    private String paperOptions() {
+        if (isA4()) {
+            return "a4paper";
+        }
+        double widthMm = pageWidthMm();
+        double heightMm = widthMm * Math.sqrt(2.0);
+        return String.format(Locale.ROOT, "paperwidth=%.1fmm, paperheight=%.1fmm", widthMm, heightMm);
+    }
+
+    /** Titel der Titelseite: Angabe aus den Formalitäten, sonst die Überschrift des Outliners. */
+    private String titleOf(LatexMetadata metadata) {
+        String t = metadata.titel();
+        if (t == null || t.isBlank()) {
+            return outlineController.getRootNode().getTitle();
+        }
+        return t;
     }
 
     /**

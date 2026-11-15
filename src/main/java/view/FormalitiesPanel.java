@@ -4,15 +4,23 @@ import model.LatexExportMode;
 import model.LatexMetadata;
 import model.LatexSettings;
 import model.PageBreakMode;
+import model.image.ImageEntry;
+import model.image.ImageLibrary;
 
 import javax.swing.*;
 import javax.swing.border.EmptyBorder;
 import javax.swing.event.DocumentEvent;
 import javax.swing.event.DocumentListener;
+import javax.swing.event.PopupMenuEvent;
+import javax.swing.event.PopupMenuListener;
 import javax.swing.text.JTextComponent;
 import java.awt.*;
+import java.awt.event.HierarchyEvent;
+import java.io.IOException;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 /**
  * Oberfläche für alle Einstellungen des LaTeX-Dokuments ("Formalitäten").
@@ -29,6 +37,10 @@ import java.util.List;
  * <p>Felder, die im aktuellen Zustand keine Wirkung haben, sind deaktiviert: Die
  * Titelseiten-Angaben gibt es nur bei der Vorlage "Benutzerdefiniert" mit eingeschalteter
  * Titelseite. Die Autoren gelten für beide Vorlagen.</p>
+ *
+ * <p>Das Logo der Titelseite wird über das Label eines Bildes aus dem Bilderordner gewählt
+ * (z. B. {@code fig:logo}, siehe {@link ImageLibrary}). Die Auswahlliste zeigt alle vorhandenen
+ * Labels, man kann auch frei tippen. Ein leeres Feld bedeutet: kein Logo.</p>
  */
 public class FormalitiesPanel extends JPanel {
 
@@ -46,6 +58,37 @@ public class FormalitiesPanel extends JPanel {
     private final JTextField ortField = new JTextField(TEXT_COLUMNS);
     private final JTextArea betreuerArea = new JTextArea(3, TEXT_COLUMNS);
 
+    private final ImageLibrary imageLibrary;
+    /**
+     * Editierbare ComboBox für das Logo-Label. Beim Wechsel des Look and Feel (z. B. wenn das Theme nach dem
+     * Aufbau des Fensters angewendet wird) ersetzt Swing die Editor-Komponente durch eine neue. Deshalb wird der
+     * Editor in {@link #updateUI()} neu angebunden, sonst würden Änderungen nicht mehr gemeldet, nicht gespeichert
+     * und nicht exportiert.
+     */
+    private final JComboBox<String> logoBox = new JComboBox<>() {
+        @Override
+        public void updateUI() {
+            String text = null;
+            if (getEditor() != null && getEditor().getEditorComponent() instanceof JTextComponent old) {
+                text = old.getText();
+            }
+            super.updateUI();
+            rebindLogoEditor(this, text);
+        }
+    };
+    /** Der aktuelle Editor von {@link #logoBox}; wird von {@link #bindLogoEditor()} gesetzt. */
+    private JTextComponent logoEditor;
+    private final DocumentListener logoDocumentListener = new DocumentListener() {
+        @Override public void insertUpdate(DocumentEvent e)  { logoChanged(); }
+        @Override public void removeUpdate(DocumentEvent e)  { logoChanged(); }
+        @Override public void changedUpdate(DocumentEvent e) { logoChanged(); }
+    };
+    private final JLabel logoHint = new JLabel(" ");
+    /** Label -> Dateiname aller Bilder, für Anzeige in der Liste und für den Hinweis. */
+    private final Map<String, String> logoFiles = new HashMap<>();
+    /** Die Einträge, mit denen die Auswahlliste zuletzt gefüllt wurde. */
+    private List<String> logoChoices = List.of();
+
     private final JSpinner pageWidth = new JSpinner(new SpinnerNumberModel(210, 50, 500, 1));
     private final JComboBox<String> pageUnit = new JComboBox<>(new String[]{"mm", "cm", "inch"});
     private final JComboBox<PageBreakMode> pageBreakMode = new JComboBox<>(PageBreakMode.values());
@@ -56,8 +99,12 @@ public class FormalitiesPanel extends JPanel {
     private final List<Runnable> changeListeners = new ArrayList<>();
     private boolean loading;
 
-    public FormalitiesPanel() {
+    /**
+     * @param imageLibrary der Bilderordner, aus dem das Logo der Titelseite per Label gewählt wird
+     */
+    public FormalitiesPanel(ImageLibrary imageLibrary) {
         super(new BorderLayout(10, 10));
+        this.imageLibrary = imageLibrary;
         setBorder(new EmptyBorder(16, 18, 16, 18));
 
         JLabel heading = new JLabel("Formalitäten");
@@ -82,6 +129,27 @@ public class FormalitiesPanel extends JPanel {
         betreuerArea.setToolTipText("Ein Betreuer pro Zeile");
         titelField.setToolTipText("Titel auf der Titelseite");
 
+        logoBox.setEditable(true);
+        logoBox.setPrototypeDisplayValue("xxxxxxxxxxxxxxxxxxxxxxxxxxxx");
+        logoBox.setToolTipText("Label eines Bildes aus dem Bilderordner, z. B. fig:logo. Leer = kein Logo");
+        logoBox.setRenderer(new DefaultListCellRenderer() {
+            @Override
+            public Component getListCellRendererComponent(JList<?> list, Object value, int index,
+                                                          boolean isSelected, boolean cellHasFocus) {
+                super.getListCellRendererComponent(list, value, index, isSelected, cellHasFocus);
+                String label = value == null ? "" : value.toString();
+                if (label.isEmpty()) {
+                    setText("(kein Logo)");
+                } else {
+                    String file = logoFiles.get(label);
+                    setText(file == null ? label : label + "  –  " + file);
+                }
+                return this;
+            }
+        });
+        bindLogoEditor();
+        logoHint.setFont(logoHint.getFont().deriveFont(11f));
+
         JPanel form = new JPanel(new GridBagLayout());
         form.setBorder(new EmptyBorder(12, 4, 4, 4));
 
@@ -96,6 +164,7 @@ public class FormalitiesPanel extends JPanel {
         addRow(form, row++, "Art der Arbeit:", artField, false, artField);
         addRow(form, row++, "Fachbereich:", fachbereichField, false, fachbereichField);
         addRow(form, row++, "Abteilung:", abteilungField, false, abteilungField);
+        addRow(form, row++, "Logo (Label):", logoPanel(), false, logoBox);
         addRow(form, row++, "Ort:", ortField, false, ortField);
         addRow(form, row++, "Betreuer:", new JScrollPane(betreuerArea), true, betreuerArea);
 
@@ -118,13 +187,16 @@ public class FormalitiesPanel extends JPanel {
         scroll.getVerticalScrollBar().setUnitIncrement(16);
         add(scroll, BorderLayout.CENTER);
 
-        JLabel info = new JLabel(
-                "Seitenbreite, Seitenumbrüche und Seitennummerierung werden vom Export noch nicht ausgewertet.");
-        info.setForeground(Color.GRAY);
-        add(info, BorderLayout.SOUTH);
-
         installListeners();
         setSettings(LatexSettings.defaults());
+        reloadLogoChoices(false);
+
+        // Bilder können hinzukommen oder ein anderes Label bekommen, während dieses Panel nicht sichtbar ist.
+        addHierarchyListener(e -> {
+            if ((e.getChangeFlags() & HierarchyEvent.SHOWING_CHANGED) != 0 && isShowing()) {
+                reloadLogoChoices(true);
+            }
+        });
     }
 
     // ── Öffentliche API ──────────────────────────────────────────────────────
@@ -152,7 +224,8 @@ public class FormalitiesPanel extends JPanel {
                 ((Number) pageWidth.getValue()).intValue(),
                 (String) pageUnit.getSelectedItem(),
                 (PageBreakMode) pageBreakMode.getSelectedItem(),
-                showPageNumbers.isSelected());
+                showPageNumbers.isSelected(),
+                logoEditor.getText());
     }
 
     /**
@@ -180,6 +253,8 @@ public class FormalitiesPanel extends JPanel {
             pageUnit.setSelectedItem(s.pageUnit());
             pageBreakMode.setSelectedItem(s.pageBreakMode());
             showPageNumbers.setSelected(s.showPageNumbers());
+            logoBox.setSelectedItem(s.logoLabel());
+            logoEditor.setText(s.logoLabel()); // auch dann, wenn der Eintrag schon ausgewählt war
         } finally {
             loading = false;
         }
@@ -216,6 +291,46 @@ public class FormalitiesPanel extends JPanel {
                 autorenArea, betreuerArea}) {
             field.getDocument().addDocumentListener(textChange);
         }
+
+        // Das Logo-Feld ist eine editierbare ComboBox: Änderungen kommen über den Text im Editor,
+        // egal ob getippt oder aus der Liste gewählt.
+        bindLogoEditor();
+        logoBox.addPopupMenuListener(new PopupMenuListener() {
+            @Override public void popupMenuWillBecomeVisible(PopupMenuEvent e) { reloadLogoChoices(true); }
+            @Override public void popupMenuWillBecomeInvisible(PopupMenuEvent e) { }
+            @Override public void popupMenuCanceled(PopupMenuEvent e) { }
+        });
+    }
+
+    /** Hängt den Document-Listener an den aktuellen Editor der ComboBox (einmal pro Editor). */
+    private void bindLogoEditor() {
+        JTextComponent editor = (JTextComponent) logoBox.getEditor().getEditorComponent();
+        if (editor == logoEditor) return;
+        logoEditor = editor;
+        editor.getDocument().addDocumentListener(logoDocumentListener);
+    }
+
+    /** Wird nach einem Look-and-Feel-Wechsel aufgerufen: neuen Editor anbinden und den Text übernehmen. */
+    private void rebindLogoEditor(JComboBox<String> box, String text) {
+        if (logoBox == null || box != logoBox || !box.isEditable()) {
+            return; // noch im Konstruktor
+        }
+        boolean wasLoading = loading;
+        loading = true; // der Text wird nur wiederhergestellt, das ist keine Änderung durch den Benutzer
+        try {
+            bindLogoEditor();
+            if (text != null && !text.equals(logoEditor.getText())) {
+                logoEditor.setText(text);
+            }
+        } finally {
+            loading = wasLoading;
+        }
+        updateLogoHint();
+    }
+
+    private void logoChanged() {
+        updateLogoHint();
+        fireChanged();
     }
 
     private void fireChanged() {
@@ -232,6 +347,67 @@ public class FormalitiesPanel extends JPanel {
         boolean titlePage = custom && coverPage.isSelected();
         for (JComponent field : titlePageFields) {
             field.setEnabled(titlePage);
+        }
+        updateLogoHint();
+    }
+
+    /**
+     * Füllt die Auswahlliste mit den Labels aller Bilder im Bilderordner. Der Text im Feld bleibt
+     * dabei unverändert und löst keine Änderungsmeldung aus.
+     *
+     * @param rescan {@code true}, wenn der Ordner vorher neu eingelesen werden soll
+     *               (z. B. weil Dateien von außen hinzugekommen sein können)
+     */
+    private void reloadLogoChoices(boolean rescan) {
+        if (rescan) {
+            try {
+                imageLibrary.refresh();
+            } catch (IOException ignored) {
+                // die zuletzt bekannte Liste bleibt
+            }
+        }
+
+        List<String> choices = new ArrayList<>();
+        choices.add("");
+        logoFiles.clear();
+        for (ImageEntry entry : imageLibrary.getEntries()) {
+            if (!entry.getLabel().isBlank()) {
+                choices.add(entry.getLabel());
+                logoFiles.put(entry.getLabel(), entry.getFileName());
+            }
+        }
+
+        if (!choices.equals(logoChoices)) {
+            logoChoices = choices;
+            String keep = logoEditor.getText();
+            boolean wasLoading = loading;
+            loading = true;
+            try {
+                logoBox.setModel(new DefaultComboBoxModel<>(choices.toArray(new String[0])));
+                logoBox.setSelectedItem(keep);
+                logoEditor.setText(keep);
+            } finally {
+                loading = wasLoading;
+            }
+        }
+        updateLogoHint();
+    }
+
+    /** Zeigt unter dem Logo-Feld an, welche Datei gemeint ist, oder warnt, wenn das Label zu keinem Bild passt. */
+    private void updateLogoHint() {
+        String label = LatexSettings.normalizeLogoLabel(logoEditor.getText());
+        if (label.isEmpty() || !logoBox.isEnabled()) {
+            logoHint.setText(" ");
+            return;
+        }
+        String file = logoFiles.get(label);
+        if (file != null) {
+            logoHint.setText("Datei: " + file);
+            Color gray = UIManager.getColor("Label.disabledForeground");
+            logoHint.setForeground(gray != null ? gray : Color.GRAY);
+        } else {
+            logoHint.setText("Kein Bild mit diesem Label gefunden");
+            logoHint.setForeground(new Color(0xD3, 0x2F, 0x2F));
         }
     }
 
@@ -290,6 +466,15 @@ public class FormalitiesPanel extends JPanel {
         for (JComponent item : titlePageItems) {
             titlePageFields.add(item);
         }
+    }
+
+    /** Logo-Auswahl mit dem Hinweis darunter. */
+    private JPanel logoPanel() {
+        JPanel panel = new JPanel(new BorderLayout(0, 3));
+        panel.setOpaque(false);
+        panel.add(logoBox, BorderLayout.NORTH);
+        panel.add(logoHint, BorderLayout.SOUTH);
+        return panel;
     }
 
     private static JPanel flow(JComponent... components) {

@@ -10,9 +10,7 @@ import action.actions.edit.InsertAction;
 import action.manager.UndoManager;
 import action.actions.outline.*;
 import controller.*;
-import model.LatexExportMode;
 import model.image.ImageLibrary;
-import model.LatexMetadata;
 import model.OutlineNode;
 import service.LatexCompiler;
 
@@ -134,7 +132,7 @@ public class MainWindow extends JFrame {
         buildDir = createBuildDir();
         BuildAction build = new BuildAction(
                 this,
-                this::exportLatex,
+                fileController::exportLatexTo,
                 preview,
                 buildDir,
                 new LatexCompiler());              // oder new LatexCompiler(LatexCompiler.Engine.XELATEX)
@@ -151,7 +149,7 @@ public class MainWindow extends JFrame {
         TreeView treeView = new TreeView(outlinePanel, textWindow);
         imageLibrary = new ImageLibrary(ImageLibrary.defaultDirectory());
         ImageManagementPanel imageManagementPanel = new ImageManagementPanel(imageLibrary);
-        FormalitiesPanel formalitiesPanel = new FormalitiesPanel();
+        FormalitiesPanel formalitiesPanel = new FormalitiesPanel(imageLibrary);
         // Speichern/Laden und die Dirty-Markierung der Formalitäten laufen über den OutlineController
         outlineController.setFormalitiesPanel(formalitiesPanel);
 
@@ -214,22 +212,6 @@ public class MainWindow extends JFrame {
 
         fileController.tryImportLastEditedFile();
         outlineController.saved();
-    }
-
-    /**
-     * Schreibt den LaTeX-Quelltext der aktuellen Gliederung in die angegebene Datei.
-     *
-     * <p>Wird von der {@link BuildAction} bei jedem Build im Event-Dispatch-Thread
-     * aufgerufen, die Gliederung ändert sich währenddessen also nicht.</p>
-     *
-     * @param mode     der gewählte Export-Modus (Standard oder benutzerdefiniert)
-     * @param metadata die Titelseiten-Angaben; {@code null} im Standard-Modus
-     * @param texFile  die Zieldatei ({@code main.tex} im Build-Verzeichnis)
-     * @throws IOException wenn die Datei nicht geschrieben werden konnte
-     */
-    private void exportLatex(LatexExportMode mode, LatexMetadata metadata, Path texFile) throws IOException {
-        // Der Export liest img/ neu ein und kopiert die Bilder selbst in den Zielordner.
-        fileController.exportLatexTo(mode, metadata, texFile);
     }
 
     /**

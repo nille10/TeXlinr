@@ -21,6 +21,8 @@ import java.util.List;
  * @param pageUnit       die Einheit der Seitenbreite: {@code "mm"}, {@code "cm"} oder {@code "inch"}
  * @param pageBreakMode  wie Seitenumbrüche gesetzt werden
  * @param showPageNumbers ob Seitenzahlen angezeigt werden
+ * @param logoLabel      das Label des Bildes aus dem Bilderordner, das als Logo auf der Titelseite steht
+ *                       (z. B. {@code "fig:logo"}); leer bedeutet: kein Logo
  */
 public record LatexSettings(
         LatexExportMode mode,
@@ -29,7 +31,8 @@ public record LatexSettings(
         int pageWidth,
         String pageUnit,
         PageBreakMode pageBreakMode,
-        boolean showPageNumbers
+        boolean showPageNumbers,
+        String logoLabel
 ) {
 
     public LatexSettings {
@@ -48,6 +51,7 @@ public record LatexSettings(
         if (pageBreakMode == null) {
             pageBreakMode = PageBreakMode.AUTOMATIC;
         }
+        logoLabel = normalizeLogoLabel(logoLabel);
     }
 
     /**
@@ -61,7 +65,27 @@ public record LatexSettings(
                 210,
                 "mm",
                 PageBreakMode.AUTOMATIC,
-                true);
+                true,
+                "");
+    }
+
+    /**
+     * Bereinigt die Eingabe eines Logo-Labels: Leerzeichen am Rand und ein führender Backslash
+     * werden entfernt, damit sowohl {@code "fig:logo"} als auch {@code "\fig:logo"} (so, wie das
+     * Kürzel im Text geschrieben wird) funktionieren.
+     *
+     * @param input die Eingabe, darf {@code null} sein
+     * @return das bereinigte Label; leer, wenn kein Logo gewählt ist
+     */
+    public static String normalizeLogoLabel(String input) {
+        if (input == null) {
+            return "";
+        }
+        String label = input.trim();
+        while (label.startsWith("\\")) {
+            label = label.substring(1).trim();
+        }
+        return label;
     }
 
     /**

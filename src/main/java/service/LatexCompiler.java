@@ -78,6 +78,12 @@ public final class LatexCompiler {
      * Kompiliert die angegebene Datei. Das Arbeitsverzeichnis ist das Verzeichnis
      * der {@code .tex}-Datei, dort landen auch PDF und Hilfsdateien.
      *
+     * <p>Wiederholte Builds sind robust gegen Änderungen der Vorlage: Hat sich die Präambel
+     * (Dokumentklasse, Pakete) seit dem letzten erfolgreichen Build geändert, werden die
+     * Hilfsdateien ({@code .aux}, {@code .toc}, {@code .out} ...) vorher gelöscht, weil veraltete
+     * Dateien einer anderen Vorlage sonst Fehler auslösen können. Schlägt ein Build trotzdem
+     * fehl, wird einmal nach vollständiger Bereinigung neu versucht.</p>
+     *
      * @param texFile die zu kompilierende {@code .tex}-Datei
      * @return das Ergebnis; wirft keine Exception für TeX-Fehler, sondern liefert {@code success == false}
      * @throws InterruptedException wenn der aufrufende Thread unterbrochen wird
@@ -88,30 +94,86 @@ public final class LatexCompiler {
         String name = tex.getFileName().toString();
         String base = name.replaceFirst("\\.tex$", "");
         Path pdf = dir.resolve(base + ".pdf");
+        Path marker = dir.resolve(base + ".texlinr-preamble");
         StringBuilder log = new StringBuilder();
 
-        boolean ok;
         try {
-            if (works("latexmk", dir)) {
-                ok = run(List.of("latexmk", engine.latexmkFlag,
-                        "-interaction=nonstopmode", "-halt-on-error",
-                        "-file-line-error", "-synctex=1", name), dir, log) == 0;
-            } else if (works(engine.binary, dir)) {
-                log.append("[latexmk nicht gefunden, verwende ").append(engine.binary).append("]\n");
-                ok = runManually(dir, name, base, log);
-            } else {
+            String preamble = preambleOf(tex);
+            boolean cleaned = false;
+
+            if (!preamble.equals(readQuietly(marker))) {
+                removeAuxiliaryFiles(dir, base, log, "Vorlage geändert");
+                cleaned = true;
+            }
+
+            Boolean ok = build(dir, name, base, log);
+            if (ok == null) {
                 return new Result(false, null, List.of(
                         "Keine TeX-Installation gefunden (weder latexmk noch " + engine.binary + "). "
                                 + "Bitte TeX Live, MiKTeX oder MacTeX installieren und prüfen, "
                                 + "ob das Programm im PATH liegt."), "");
             }
+
+            if (!(ok && Files.exists(pdf)) && !cleaned) {
+                removeAuxiliaryFiles(dir, base, log, "Build fehlgeschlagen, neuer Versuch");
+                ok = build(dir, name, base, log);
+            }
+
+            boolean success = Boolean.TRUE.equals(ok) && Files.exists(pdf);
+            if (success) {
+                Files.writeString(marker, preamble, StandardCharsets.UTF_8);
+            } else {
+                Files.deleteIfExists(marker);
+            }
+            return new Result(success, success ? pdf : null, extractErrors(log.toString()), log.toString());
         } catch (IOException e) {
             return new Result(false, null, List.of("TeX konnte nicht gestartet werden: " + e.getMessage()),
                     log.toString());
         }
+    }
 
-        boolean success = ok && Files.exists(pdf);
-        return new Result(success, success ? pdf : null, extractErrors(log.toString()), log.toString());
+    /** Ein Build-Durchlauf. {@code null}, wenn keine TeX-Installation gefunden wurde. */
+    private Boolean build(Path dir, String name, String base, StringBuilder log)
+            throws IOException, InterruptedException {
+        if (works("latexmk", dir)) {
+            return run(List.of("latexmk", engine.latexmkFlag,
+                    "-interaction=nonstopmode", "-halt-on-error",
+                    "-file-line-error", "-synctex=1", name), dir, log) == 0;
+        }
+        if (works(engine.binary, dir)) {
+            log.append("[latexmk nicht gefunden, verwende ").append(engine.binary).append("]\n");
+            return runManually(dir, name, base, log);
+        }
+        return null;
+    }
+
+    /** Alles vor {@code \begin{document}}: Dokumentklasse, Pakete, Seitenformat. */
+    private static String preambleOf(Path tex) throws IOException {
+        String text = Files.readString(tex, StandardCharsets.UTF_8);
+        int i = text.indexOf("\\begin{document}");
+        return i < 0 ? text : text.substring(0, i);
+    }
+
+    private static String readQuietly(Path file) {
+        try {
+            return Files.exists(file) ? Files.readString(file, StandardCharsets.UTF_8) : null;
+        } catch (IOException e) {
+            return null;
+        }
+    }
+
+    /** Löscht die von TeX erzeugten Hilfsdateien (nicht die {@code .tex}-Datei selbst). */
+    private static void removeAuxiliaryFiles(Path dir, String base, StringBuilder log, String reason) {
+        String[] endings = {".aux", ".toc", ".out", ".lof", ".lot", ".log", ".fls", ".fdb_latexmk",
+                ".synctex.gz", ".bbl", ".blg", ".bcf", ".run.xml", ".pdf", ".xdv"};
+        log.append("[Hilfsdateien werden gelöscht: ").append(reason).append("]\n");
+        for (String ending : endings) {
+            try {
+                Files.deleteIfExists(dir.resolve(base + ending));
+            } catch (IOException ignored) {
+                // gesperrte Datei (z. B. von einem PDF-Viewer): der Build zeigt dann den eigentlichen Fehler
+            }
+        }
     }
 
     // ── Fallback ohne latexmk ────────────────────────────────────────────────

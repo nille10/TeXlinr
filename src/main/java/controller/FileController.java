@@ -1,8 +1,6 @@
 package controller;
 
 import model.JSONParser;
-import model.LatexExportMode;
-import model.LatexMetadata;
 import model.OutlineNode;
 import model.XMLParser;
 import model.LATEXParser;
@@ -202,19 +200,17 @@ public class FileController {
     /**
      * Schreibt das Dokument ohne Dialoge als LaTeX in die angegebene Datei.
      * <p>
-     *     Wird vom Build der PDF-Vorschau verwendet. Modus und Titelseiten-Angaben
-     *     sind bereits bekannt, Fehler werden an den Aufrufer weitergegeben statt in
+     *     Wird vom Build der PDF-Vorschau verwendet. Vorlage und Titelseiten-Angaben
+     *     kommen aus den Formalitäten, Fehler werden an den Aufrufer weitergegeben statt in
      *     einem Dialog angezeigt.
      * </p>
-     * @param mode     der Export-Modus (Standard oder benutzerdefiniert)
-     * @param metadata die Titelseiten-Angaben, {@code null} im Standard-Modus
-     * @param texFile  die Zieldatei
+     * @param texFile die Zieldatei
      * @throws IOException wenn beim Schreiben ein Fehler auftritt
-     * @see LATEXParser#exportTo(Path, LatexExportMode, LatexMetadata)
+     * @see LATEXParser#exportTo(Path)
      */
-    public void exportLatexTo(LatexExportMode mode, LatexMetadata metadata, Path texFile) throws IOException {
+    public void exportLatexTo(Path texFile) throws IOException {
         new LATEXParser(outlineController, mainWindow, treeModel, mainWindow.getImageLibrary())
-                .exportTo(texFile, mode, metadata);
+                .exportTo(texFile);
     }
 
     /**

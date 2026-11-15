@@ -184,6 +184,7 @@ public class XMLParser {
         formalities.setAttribute("pageUnit", settings.pageUnit());
         formalities.setAttribute("pageBreakMode", settings.pageBreakMode().name());
         formalities.setAttribute("showPageNumbers", String.valueOf(settings.showPageNumbers()));
+        formalities.setAttribute("logo", settings.logoLabel());
 
         appendTextElement(doc, formalities, "fachbereich", metadata.fachbereich());
         appendTextElement(doc, formalities, "abteilung", metadata.abteilung());
@@ -241,7 +242,8 @@ public class XMLParser {
                 attributeInt(formalities, "pageWidth", defaults.pageWidth()),
                 formalities.hasAttribute("pageUnit") ? formalities.getAttribute("pageUnit") : defaults.pageUnit(),
                 PageBreakMode.fromName(formalities.getAttribute("pageBreakMode"), defaults.pageBreakMode()),
-                attributeBoolean(formalities, "showPageNumbers", defaults.showPageNumbers()));
+                attributeBoolean(formalities, "showPageNumbers", defaults.showPageNumbers()),
+                formalities.hasAttribute("logo") ? formalities.getAttribute("logo") : defaults.logoLabel());
     }
 
     private String childText(Element parent, String tagName, String fallback) {
