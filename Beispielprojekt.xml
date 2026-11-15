@@ -1,0 +1,318 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<outline>
+    <head title="Entwicklung eines Outliners für wissenschaftliches Arbeiten mit LaTeX">
+        <ColumnHeader type="CHECKBOX">Erledigt</ColumnHeader>
+        <ColumnHeader type="TEXTFIELD">Status</ColumnHeader>
+    </head>
+    <formalities coverPage="true" logo="fig:logo" mode="EXPERT" pageBreakMode="AUTOMATIC" pageUnit="mm" pageWidth="210" showPageNumbers="true">
+        <fachbereich>Technik</fachbereich>
+        <abteilung>Elektrotechnik und Informatik</abteilung>
+        <titel>Entwicklung eines Outliners für wissenschaftliches Arbeiten mit LaTeX</titel>
+        <artDerArbeit>Bachelorarbeit</artDerArbeit>
+        <ort>Musterstadt</ort>
+        <autor>Maximilian Mustermann</autor>
+        <autor>Erika Musterfrau</autor>
+        <betreuer>Prof. Dr. Anna Beispiel</betreuer>
+        <betreuer>M. Sc. Jonas Muster</betreuer>
+    </formalities>
+    <sources>
+        <source corporate="false" key="Lamport1994" type="BOOK">
+            <field name="AUTHOR">Lamport, Leslie</field>
+            <field name="TITLE">{LaTeX}: A Document Preparation System</field>
+            <field name="EDITION">2</field>
+            <field name="PUBLISHER">Addison-Wesley</field>
+            <field name="ADDRESS">Reading, MA</field>
+            <field name="YEAR">1994</field>
+            <field name="ISBN">0-201-52983-1</field>
+        </source>
+        <source corporate="false" key="Knuth1984" type="BOOK">
+            <field name="AUTHOR">Knuth, Donald E.</field>
+            <field name="TITLE">The {TeX}book</field>
+            <field name="PUBLISHER">Addison-Wesley</field>
+            <field name="ADDRESS">Reading, MA</field>
+            <field name="YEAR">1984</field>
+            <field name="ISBN">0-201-13447-0</field>
+        </source>
+        <source corporate="false" key="Gamma1995" type="BOOK">
+            <field name="AUTHOR">Gamma, Erich
+Helm, Richard
+Johnson, Ralph
+Vlissides, John</field>
+            <field name="TITLE">Design Patterns: Elements of Reusable Object-Oriented Software</field>
+            <field name="PUBLISHER">Addison-Wesley</field>
+            <field name="ADDRESS">Reading, MA</field>
+            <field name="YEAR">1995</field>
+            <field name="ISBN">0-201-63361-2</field>
+        </source>
+        <source corporate="false" key="Fowler2002" type="BOOK">
+            <field name="AUTHOR">Fowler, Martin</field>
+            <field name="TITLE">Patterns of Enterprise Application Architecture</field>
+            <field name="PUBLISHER">Addison-Wesley</field>
+            <field name="ADDRESS">Boston, MA</field>
+            <field name="YEAR">2002</field>
+            <field name="ISBN">0-321-12742-0</field>
+        </source>
+        <source corporate="false" key="KnuthLiterate1984" type="ARTICLE">
+            <field name="AUTHOR">Knuth, Donald E.</field>
+            <field name="TITLE">Literate Programming</field>
+            <field name="JOURNAL">The Computer Journal</field>
+            <field name="VOLUME">27</field>
+            <field name="NUMBER">2</field>
+            <field name="PAGES">97-111</field>
+            <field name="YEAR">1984</field>
+            <field name="DOI">10.1093/comjnl/27.2.97</field>
+        </source>
+        <source corporate="false" key="Krasner1988" type="ARTICLE">
+            <field name="AUTHOR">Krasner, Glenn E.
+Pope, Stephen T.</field>
+            <field name="TITLE">A Cookbook for Using the Model-View-Controller User Interface Paradigm in Smalltalk-80</field>
+            <field name="JOURNAL">Journal of Object-Oriented Programming</field>
+            <field name="VOLUME">1</field>
+            <field name="NUMBER">3</field>
+            <field name="PAGES">26-49</field>
+            <field name="YEAR">1988</field>
+        </source>
+        <source corporate="false" key="Vaswani2017" type="CONFERENCE">
+            <field name="AUTHOR">Vaswani, Ashish
+Shazeer, Noam
+Parmar, Niki
+Uszkoreit, Jakob
+Jones, Llion
+Gomez, Aidan N.
+Kaiser, Lukasz
+Polosukhin, Illia</field>
+            <field name="TITLE">Attention Is All You Need</field>
+            <field name="BOOKTITLE">Advances in Neural Information Processing Systems 30 (NIPS 2017)</field>
+            <field name="PUBLISHER">Curran Associates</field>
+            <field name="PAGES">5998-6008</field>
+            <field name="YEAR">2017</field>
+        </source>
+        <source corporate="true" key="LaTeXProject" type="WEBSITE">
+            <field name="AUTHOR">The LaTeX Project</field>
+            <field name="TITLE">{LaTeX} -- A Document Preparation System</field>
+            <field name="URL">https://www.latex-project.org/</field>
+            <field name="ACCESSED">15.11.2026</field>
+        </source>
+        <source corporate="false" key="MiKTeX" type="SOFTWARE">
+            <field name="TITLE">{MiKTeX}</field>
+            <field name="URL">https://miktex.org/</field>
+            <field name="ACCESSED">15.11.2026</field>
+            <field name="NOTE">TeX-Distribution für Windows, macOS und Linux</field>
+        </source>
+        <source corporate="false" key="WorkFlowy" type="WEBSITE">
+            <field name="TITLE">WorkFlowy</field>
+            <field name="URL">https://workflowy.com/</field>
+            <field name="ACCESSED">15.11.2026</field>
+        </source>
+        <source corporate="false" key="OmniOutliner" type="WEBSITE">
+            <field name="TITLE">{OmniOutliner}</field>
+            <field name="URL">https://www.omnigroup.com/omnioutliner/</field>
+            <field name="ACCESSED">15.11.2026</field>
+        </source>
+        <source corporate="true" key="JavaSwing" type="WEBSITE">
+            <field name="AUTHOR">Oracle Corporation</field>
+            <field name="TITLE">Creating a {GUI} With {Swing}</field>
+            <field name="URL">https://docs.oracle.com/javase/tutorial/uiswing/</field>
+            <field name="ACCESSED">15.11.2026</field>
+        </source>
+        <source corporate="true" key="FlatLaf" type="SOFTWARE">
+            <field name="AUTHOR">FormDev Software GmbH</field>
+            <field name="TITLE">{FlatLaf} -- Flat Look and Feel</field>
+            <field name="URL">https://www.formdev.com/flatlaf/</field>
+            <field name="ACCESSED">15.11.2026</field>
+        </source>
+        <source corporate="false" key="Beispiel2025" type="THESIS">
+            <field name="AUTHOR">Beispiel, Berta</field>
+            <field name="TITLE">Konzeption eines Werkzeugs zur Literaturverwaltung (fiktives Beispiel)</field>
+            <field name="THESIS_KIND">Bachelorarbeit</field>
+            <field name="SCHOOL">Hochschule Musterstadt</field>
+            <field name="ADDRESS">Musterstadt</field>
+            <field name="YEAR">2025</field>
+        </source>
+        <source corporate="true" key="Muster2024" type="REPORT">
+            <field name="AUTHOR">Musterinstitut für Dokumentation</field>
+            <field name="TITLE">Wissenschaftliches Schreiben mit Werkzeugunterstützung (fiktives Beispiel)</field>
+            <field name="INSTITUTION">Musterinstitut für Dokumentation</field>
+            <field name="ADDRESS">Musterstadt</field>
+            <field name="NUMBER">TR-2024-07</field>
+            <field name="YEAR">2024</field>
+        </source>
+    </sources>
+    <node title="Entwicklung eines Outliners für wissenschaftliches Arbeiten mit LaTeX">
+        <column columnTitle="Erledigt" columnType="CHECKBOX" columnValue="false"/>
+        <column columnTitle="Status" columnType="TEXTFIELD" columnValue=""/>
+        <content/>
+        <node title="Hinweise zum Beispielprojekt">
+            <column columnTitle="Erledigt" columnType="CHECKBOX" columnValue="false"/>
+            <column columnTitle="Status" columnType="TEXTFIELD" columnValue="Tipp"/>
+            <content>Dieses Beispielprojekt zeigt, was TeXlinr kann. Es ist eine kleine Bachelorarbeit \emph{über den Outliner selbst}, jeder Eintrag der Gliederung nutzt dabei eine andere Funktion. Diesen Abschnitt kannst du später löschen.
+
+\begin{itemize}
+  \item \textbf{Gliederung:} Einträge bis zur dritten Ebene, die Spalten rechts im Baum (hier \glqq Erledigt\grqq{} und \glqq Status\grqq) werden mitgespeichert.
+  \item \textbf{Notizen sind LaTeX:} Alles, was du hier schreibst, landet unverändert im Dokument. Sonderzeichen wie Prozent oder Unterstrich schreibst du deshalb mit Backslash.
+  \item \textbf{Abbildungen:} Lege die Bilder \texttt{logo.png}, \texttt{architektur.png}, \texttt{messaufbau.png} und \texttt{ergebnis.png} in den Ordner \texttt{img}. Mit \texttt{\textbackslash fig:label} fügst du sie ein, siehe Abschnitt \glqq Export nach LaTeX\grqq.
+  \item \textbf{Quellen:} Im Bereich \glqq Quellen\grqq{} stehen Beispiele für alle Quellenarten. Zitiert wird mit \texttt{\textbackslash cite:schluessel}.
+  \item \textbf{Formalitäten:} Vorlage, Titelseite, Autoren, Betreuer, Logo und Seitenformat.
+  \item \textbf{Bedienung:} F5 baut das PDF, Shift+Shift öffnet die Suche, beim Tippen von \texttt{\textbackslash } hilft die Vervollständigung.
+\end{itemize}</content>
+        </node>
+        <node title="Einleitung">
+            <column columnTitle="Erledigt" columnType="CHECKBOX" columnValue="true"/>
+            <column columnTitle="Status" columnType="TEXTFIELD" columnValue="fertig"/>
+            <content/>
+            <node title="Motivation">
+                <column columnTitle="Erledigt" columnType="CHECKBOX" columnValue="true"/>
+                <column columnTitle="Status" columnType="TEXTFIELD" columnValue="fertig"/>
+                <content>Wissenschaftliche Arbeiten werden in den Natur- und Ingenieurwissenschaften häufig mit \LaTeX{} gesetzt~\cite:Lamport1994. Der Satzsystem-Kern geht auf \TeX{} zurück~\cite:Knuth1984 und trennt konsequent Inhalt und Gestaltung. Bei langen Dokumenten geht jedoch schnell der Überblick verloren: Der Quelltext ist unübersichtlich, und Umgestaltungen der Gliederung sind mühsam.
+
+Gliederungseditoren wie WorkFlowy~\cite:WorkFlowy oder OmniOutliner~\cite:OmniOutliner lösen dieses Problem für Notizen, erzeugen aber kein \LaTeX{}-Dokument.</content>
+            </node>
+            <node title="Zielsetzung">
+                <column columnTitle="Erledigt" columnType="CHECKBOX" columnValue="true"/>
+                <column columnTitle="Status" columnType="TEXTFIELD" columnValue="fertig"/>
+                <content>Ziel dieser Arbeit ist ein Werkzeug, das beides verbindet. Es soll
+
+\begin{enumerate}
+  \item eine Gliederung per Drag and Drop bearbeitbar machen,
+  \item Abbildungen und Quellen komfortabel verwalten und
+  \item per Knopfdruck ein fertiges PDF mit der lokal installierten \TeX-Distribution erzeugen.
+\end{enumerate}</content>
+            </node>
+            <node title="Aufbau der Arbeit">
+                <column columnTitle="Erledigt" columnType="CHECKBOX" columnValue="false"/>
+                <column columnTitle="Status" columnType="TEXTFIELD" columnValue="Entwurf"/>
+                <content>Kapitel~2 stellt die Grundlagen vor, Kapitel~3 beschreibt Konzept und Umsetzung. In Kapitel~4 folgt eine kleine Auswertung, Kapitel~5 fasst die Ergebnisse zusammen.</content>
+            </node>
+        </node>
+        <node title="Grundlagen">
+            <column columnTitle="Erledigt" columnType="CHECKBOX" columnValue="true"/>
+            <column columnTitle="Status" columnType="TEXTFIELD" columnValue="fertig"/>
+            <content/>
+            <node title="LaTeX und BibTeX">
+                <column columnTitle="Erledigt" columnType="CHECKBOX" columnValue="true"/>
+                <column columnTitle="Status" columnType="TEXTFIELD" columnValue="fertig"/>
+                <content>Das \LaTeX-Projekt~\cite:LaTeXProject stellt die Makros und die Dokumentation bereit. Das Literaturverzeichnis wird mit BibTeX aus einer Datei mit der Endung \texttt{.bib} erzeugt. Unter Windows bringt MiKTeX~\cite:MiKTeX beides mit, es muss nichts weiter installiert werden.
+
+Ein verwandter Gedanke ist das \emph{Literate Programming}, bei dem Text und Quelltext in einem Dokument stehen~\cite:KnuthLiterate1984.</content>
+            </node>
+            <node title="Gliederungseditoren">
+                <column columnTitle="Erledigt" columnType="CHECKBOX" columnValue="true"/>
+                <column columnTitle="Status" columnType="TEXTFIELD" columnValue="fertig"/>
+                <content>Ein Gliederungseditor zeigt ein Dokument als Baum aus Überschriften. Einträge lassen sich verschieben, ein- und ausrücken und zuklappen. TeXlinr überträgt diese Idee auf wissenschaftliche Texte: Die ersten drei Ebenen werden zu \texttt{\textbackslash section}, \texttt{\textbackslash subsection} und \texttt{\textbackslash subsubsection}.</content>
+            </node>
+            <node title="Entwurfsmuster">
+                <column columnTitle="Erledigt" columnType="CHECKBOX" columnValue="false"/>
+                <column columnTitle="Status" columnType="TEXTFIELD" columnValue="Entwurf"/>
+                <content>Die Anwendung ist nach bewährten Mustern aufgebaut~\cite:Gamma1995,Fowler2002. Zwei davon sind besonders wichtig.</content>
+                <node title="Model-View-Controller">
+                    <column columnTitle="Erledigt" columnType="CHECKBOX" columnValue="true"/>
+                    <column columnTitle="Status" columnType="TEXTFIELD" columnValue="fertig"/>
+                    <content>Das Muster trennt Daten, Darstellung und Steuerung~\cite:Krasner1988. In TeXlinr halten die Modellklassen die Gliederung und die Einstellungen, die Oberfläche zeigt sie nur an.</content>
+                </node>
+                <node title="Beobachter">
+                    <column columnTitle="Erledigt" columnType="CHECKBOX" columnValue="false"/>
+                    <column columnTitle="Status" columnType="TEXTFIELD" columnValue="offen"/>
+                    <content>Änderungen im Modell melden sich bei interessierten Klassen an, ohne dass das Modell sie kennen muss~\cite:Gamma1995. So markiert zum Beispiel jede Änderung der Formalitäten das Projekt als ungespeichert.</content>
+                </node>
+            </node>
+        </node>
+        <node title="Konzept und Umsetzung">
+            <column columnTitle="Erledigt" columnType="CHECKBOX" columnValue="false"/>
+            <column columnTitle="Status" columnType="TEXTFIELD" columnValue="Entwurf"/>
+            <content/>
+            <node title="Architektur">
+                <column columnTitle="Erledigt" columnType="CHECKBOX" columnValue="true"/>
+                <column columnTitle="Status" columnType="TEXTFIELD" columnValue="fertig"/>
+                <content>Abbildung~\ref{fig:architektur} zeigt den Aufbau: Die Gliederung und die Notizen werden beim Bauen in ein \LaTeX-Dokument umgewandelt, das \TeX{} anschließend in ein PDF übersetzt.
+
+\fig:architektur
+
+Die Vorschau zeigt das Ergebnis dauerhaft neben der Gliederung an.</content>
+            </node>
+            <node title="Oberfläche mit Java Swing">
+                <column columnTitle="Erledigt" columnType="CHECKBOX" columnValue="true"/>
+                <column columnTitle="Status" columnType="TEXTFIELD" columnValue="fertig"/>
+                <content>Die Oberfläche besteht aus Java Swing~\cite:JavaSwing. Für das moderne Erscheinungsbild sorgt FlatLaf~\cite:FlatLaf.</content>
+            </node>
+            <node title="Export nach LaTeX">
+                <column columnTitle="Erledigt" columnType="CHECKBOX" columnValue="false"/>
+                <column columnTitle="Status" columnType="TEXTFIELD" columnValue="Entwurf"/>
+                <content>Beim Export werden alle Einträge in der Reihenfolge der Gliederung geschrieben. Drei Kürzel erleichtern das Arbeiten.</content>
+                <node title="Abbildungen">
+                    <column columnTitle="Erledigt" columnType="CHECKBOX" columnValue="true"/>
+                    <column columnTitle="Status" columnType="TEXTFIELD" columnValue="fertig"/>
+                    <content>Ein Kürzel wie \texttt{\textbackslash fig:messaufbau} wird beim Export durch die fertige \texttt{figure}-Umgebung mit Breite, Beschriftung und Label ersetzt. Der Text in der Gliederung bleibt dabei unverändert. Im Dokument verweist man mit \texttt{\textbackslash ref} darauf, wie in Abbildung~\ref{fig:architektur}.</content>
+                </node>
+                <node title="Zitate">
+                    <column columnTitle="Erledigt" columnType="CHECKBOX" columnValue="true"/>
+                    <column columnTitle="Status" columnType="TEXTFIELD" columnValue="fertig"/>
+                    <content>Mit \texttt{\textbackslash cite:Gamma1995} entsteht ein Verweis auf die Quelle, mehrere Quellen trennt man mit Komma: \texttt{\textbackslash cite:Gamma1995,Fowler2002}. Das Literaturverzeichnis am Ende enthält alle zitierten Quellen.
+
+Auch Quellen anderer Arten lassen sich zitieren, etwa eine Abschlussarbeit~\cite:Beispiel2025 oder ein technischer Bericht~\cite:Muster2024.</content>
+                </node>
+                <node title="Formalitäten">
+                    <column columnTitle="Erledigt" columnType="CHECKBOX" columnValue="true"/>
+                    <column columnTitle="Status" columnType="TEXTFIELD" columnValue="fertig"/>
+                    <content>Titelseite, Autoren, Betreuer, Logo, Seitenbreite, Seitenumbrüche und Seitenzahlen stehen im Bereich \glqq Formalitäten\grqq{} und werden mit dem Projekt gespeichert. Das Logo wählt man über das Label eines Bildes, hier \texttt{fig:logo}.</content>
+                </node>
+            </node>
+        </node>
+        <node title="Auswertung">
+            <column columnTitle="Erledigt" columnType="CHECKBOX" columnValue="false"/>
+            <column columnTitle="Status" columnType="TEXTFIELD" columnValue="offen"/>
+            <content/>
+            <node title="Messaufbau">
+                <column columnTitle="Erledigt" columnType="CHECKBOX" columnValue="false"/>
+                <column columnTitle="Status" columnType="TEXTFIELD" columnValue="Entwurf"/>
+                <content>Gemessen wurde die Dauer eines Builds für Dokumente unterschiedlicher Länge. Der Aufbau ist in Abbildung~\ref{fig:messaufbau} dargestellt.
+
+\fig:messaufbau</content>
+            </node>
+            <node title="Ergebnisse">
+                <column columnTitle="Erledigt" columnType="CHECKBOX" columnValue="false"/>
+                <column columnTitle="Status" columnType="TEXTFIELD" columnValue="offen"/>
+                <content>Tabelle~\ref{tab:zeiten} fasst die Messungen zusammen (\emph{Beispielwerte}, nicht real gemessen). Die mittlere Dauer berechnet sich aus
+\[
+  \bar{t} = \frac{1}{n} \sum_{i=1}^{n} t_i .
+\]
+
+\begin{table}[htbp]
+  \centering
+  \caption{Dauer eines Builds nach Dokumentlänge (Beispielwerte)}
+  \label{tab:zeiten}
+  \begin{tabular}{lrr}
+    \hline
+    Dokument &amp; Seiten &amp; Dauer in s \\
+    \hline
+    kurz   &amp; 5   &amp; 1{,}2 \\
+    mittel &amp; 40  &amp; 2{,}8 \\
+    lang   &amp; 150 &amp; 7{,}5 \\
+    \hline
+  \end{tabular}
+\end{table}
+
+\fig:ergebnis</content>
+            </node>
+            <node title="Diskussion">
+                <column columnTitle="Erledigt" columnType="CHECKBOX" columnValue="false"/>
+                <column columnTitle="Status" columnType="TEXTFIELD" columnValue="offen"/>
+                <content>Die Dauer wächst etwa linear mit der Seitenzahl. Bei langen Dokumenten fällt der zweite \TeX-Lauf für das Literaturverzeichnis ins Gewicht; er wird nur ausgeführt, wenn Quellen zitiert werden.</content>
+            </node>
+        </node>
+        <node title="Fazit und Ausblick">
+            <column columnTitle="Erledigt" columnType="CHECKBOX" columnValue="false"/>
+            <column columnTitle="Status" columnType="TEXTFIELD" columnValue="offen"/>
+            <content/>
+            <node title="Fazit">
+                <column columnTitle="Erledigt" columnType="CHECKBOX" columnValue="false"/>
+                <column columnTitle="Status" columnType="TEXTFIELD" columnValue="offen"/>
+                <content>TeXlinr verbindet die Übersicht eines Gliederungseditors mit der Qualität von \LaTeX. Die Arbeit am Text, an den Abbildungen und an den Quellen findet in einem Programm statt.</content>
+            </node>
+            <node title="Ausblick">
+                <column columnTitle="Erledigt" columnType="CHECKBOX" columnValue="false"/>
+                <column columnTitle="Status" columnType="TEXTFIELD" columnValue="offen"/>
+                <content>Denkbar sind der Import vorhandener \texttt{.bib}-Dateien sowie Textvorschläge durch Sprachmodelle auf Basis der Transformer-Architektur~\cite:Vaswani2017.</content>
+            </node>
+        </node>
+    </node>
+</outline>
